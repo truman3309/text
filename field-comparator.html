@@ -433,6 +433,7 @@
     colKey.disabled = false;
     colKey.innerHTML = entry.columns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     refreshCompareFieldOptions();
+    document.getElementById('results').classList.remove('show');
     checkReady();
   }
 
