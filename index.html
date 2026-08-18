@@ -6,7 +6,6 @@
 <title>欄位重複比對台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --paper:#F3F5F4;
@@ -63,7 +62,13 @@
   .layout{ display:flex; gap:20px; align-items:flex-start; }
   .main-panel{ flex:1 1 640px; min-width:0; }
   .files-panel{ flex:0 0 280px; min-width:240px; padding:18px; }
-  .files-panel-header{ margin-bottom:12px; }
+  .files-panel-header{ margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .clear-all-btn{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; border:1px solid var(--border);
+    background:#fff; border-radius:2px; padding:3px 7px; cursor:pointer; color:var(--muted); white-space:nowrap;
+  }
+  .clear-all-btn:hover{ border-color:var(--danger); color:var(--danger); }
+  .files-hint{ font-size:10.5px; color:var(--muted); margin-bottom:12px; line-height:1.5; }
   .files-empty{ font-size:13px; color:var(--muted); padding:18px 4px; text-align:center; }
   .files-list{ display:flex; flex-direction:column; gap:8px; max-height:560px; overflow-y:auto; }
   .file-group-label{
@@ -77,12 +82,9 @@
     padding:1px 6px; font-size:10px;
   }
   .file-item{
-    border:1px solid var(--border); border-left:3px solid var(--border); border-radius:2px;
+    border:1px solid var(--border); border-left:3px solid var(--success); border-radius:2px;
     padding:9px 10px; display:flex; justify-content:space-between; align-items:center; gap:8px;
-    cursor:pointer;
   }
-  .file-item:hover{ border-top-color:var(--steel); border-right-color:var(--steel); border-bottom-color:var(--steel); }
-  .file-item.active{ border-left-color:var(--success); background:var(--success-tint); }
   .file-item-main{ flex:1; min-width:0; }
   .file-item-name{ font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; word-break:break-all; line-height:1.3; }
   .file-item-meta{ font-size:11px; color:var(--muted); margin-top:3px; }
@@ -92,6 +94,48 @@
     background:#fff; border-radius:2px; padding:3px 7px; cursor:pointer; color:var(--muted); white-space:nowrap;
   }
   .file-remove-btn:hover{ border-color:var(--danger); color:var(--danger); }
+  .file-json-btn{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; border:1px solid var(--border);
+    background:#fff; border-radius:2px; padding:3px 7px; cursor:pointer; color:var(--muted); white-space:nowrap;
+  }
+  .file-json-btn:hover{ border-color:var(--steel); color:var(--steel); }
+
+  .json-modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(27,35,43,0.55);
+    z-index:1000; align-items:center; justify-content:center; padding:24px;
+  }
+  .json-modal-overlay.show{ display:flex; }
+  .json-modal{
+    background:var(--card-bg); border-radius:3px; width:100%; max-width:760px; max-height:85vh;
+    display:flex; flex-direction:column; box-shadow:0 8px 30px rgba(0,0,0,0.25); overflow:hidden;
+  }
+  .json-modal-header{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+    padding:16px 20px; border-bottom:1px solid var(--border);
+  }
+  .json-modal-title{ font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; color:var(--ink); word-break:break-all; }
+  .json-modal-meta{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .json-modal-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .json-modal-download{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600; border:1px solid var(--steel);
+    background:none; color:var(--steel); padding:6px 12px; border-radius:2px; cursor:pointer; white-space:nowrap;
+  }
+  .json-modal-download:hover{ background:var(--steel); color:#fff; }
+  .json-modal-close{
+    font-family:'IBM Plex Mono',monospace; border:1px solid var(--border); background:#fff;
+    color:var(--muted); width:30px; height:30px; border-radius:2px; cursor:pointer;
+  }
+  .json-modal-close:hover{ border-color:var(--danger); color:var(--danger); }
+  .json-modal-body{
+    margin:0; padding:18px 20px; overflow:auto; font-family:'IBM Plex Mono',monospace;
+    font-size:12px; line-height:1.6; color:var(--ink); background:#FAFBFB; white-space:pre; flex:1;
+  }
+  .show-more-btn{
+    display:block; width:100%; font-family:'IBM Plex Mono',monospace; font-size:11px;
+    border:1px dashed var(--border); background:#fff; border-radius:2px; padding:7px; margin-top:2px;
+    cursor:pointer; color:var(--steel); text-align:center;
+  }
+  .show-more-btn:hover{ background:var(--steel-tint); }
 
   .upload-single{ padding:22px 22px 0; }
 
@@ -101,7 +145,7 @@
     cursor:pointer; min-height:150px; display:flex; flex-direction:column; justify-content:center;
   }
   .slot.drag{ border-color:var(--steel); background:var(--steel-tint); }
-  .slot.loaded{ border-style:solid; border-color:var(--success); background:var(--success-tint); cursor:default; }
+  .slot.loaded{ border-style:solid; border-color:var(--success); background:var(--success-tint); }
   .slot input{ display:none; }
   .corner{ position:absolute; width:14px; height:14px; border-color:var(--steel); opacity:.55; }
   .corner.tl{ top:-1px; left:-1px; border-top:2px solid; border-left:2px solid; }
@@ -118,12 +162,10 @@
   .slot-hint{ font-size:12.5px; color:var(--muted); margin-top:4px; }
   .slot-file{ font-family:'IBM Plex Mono', monospace; font-size:13.5px; font-weight:600; word-break:break-all; }
   .slot-meta{ font-size:12.5px; color:var(--muted); margin-top:4px; }
-  .slot-clear{
-    position:absolute; top:10px; right:10px; font-family:'IBM Plex Mono',monospace;
-    font-size:11px; color:var(--muted); background:none; border:1px solid var(--border);
-    border-radius:2px; padding:3px 7px; cursor:pointer;
+  .upload-progress-track{
+    margin-top:10px; height:6px; border-radius:1px; background:#EDEFF0; overflow:hidden;
   }
-  .slot-clear:hover{ color:var(--danger); border-color:var(--danger); }
+  .upload-progress-fill{ height:100%; background:var(--success); transition:width .15s ease; }
 
   .config{ padding:22px; border-top:1px solid var(--border); margin-top:22px; }
   .config-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:18px; align-items:start; }
@@ -145,14 +187,6 @@
   }
 
   .fields-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:start; margin-bottom:20px; }
-  .field-chip{ flex:1 1 150px; min-width:150px; }
-  .field-chip .chip-label{
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em;
-    text-transform:uppercase; margin-bottom:5px; display:block; color:var(--muted);
-  }
-  .field-chip.key-chip{ position:relative; }
-  .field-chip.key-chip .chip-label{ color:var(--steel); }
-  .field-chip.key-chip select{ border-color:var(--steel); }
   #compareFieldsList{ display:contents; }
   .compare-field-row{ flex:1 1 150px; min-width:150px; }
   .compare-field-row .chip-label{
@@ -216,18 +250,29 @@
   tbody tr:hover{ background:#FAFBFB; }
   tbody tr.group-alt td{ background:#F7F8F6; }
   tbody tr.group-alt:hover td{ background:#F1F3F2; }
-  td.idx{ font-family:'IBM Plex Mono',monospace; color:var(--muted); font-size:12px; }
   td.hitfield{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:12px; }
   td.hitfield.mode-horizontal{ color:var(--brass); }
   td.hitfield.mode-vertical{ color:#D2691E; }
+  td.srcfile{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--steel); }
   td.key{ font-family:'IBM Plex Mono',monospace; font-weight:600; background:var(--brass-tint); }
-  td.keycol{ font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--steel); background:var(--steel-tint); }
   th.key{ color:var(--brass); }
-  th.keycol{ color:var(--steel); }
   th.cmp{ color:var(--brass); opacity:.7; }
+  th.srcfile{ color:var(--steel); }
 
   .empty-state{ padding:50px 20px; text-align:center; color:var(--muted); font-size:14px; }
   .empty-state .big{ font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--ink); margin-bottom:6px; }
+
+  .pagination{
+    display:flex; align-items:center; justify-content:center; gap:16px;
+    padding:14px 22px; border-top:1px solid var(--border);
+  }
+  .page-btn{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; border:1px solid var(--border);
+    background:#fff; color:var(--steel); padding:6px 14px; border-radius:2px; cursor:pointer;
+  }
+  .page-btn:hover:not(:disabled){ background:var(--steel-tint); }
+  .page-btn:disabled{ color:var(--muted); cursor:not-allowed; opacity:.5; }
+  .page-info{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); }
 
   @media (max-width:900px){
     .layout{ flex-direction:column; }
@@ -245,7 +290,7 @@
   <header>
     <div class="eyebrow">Duplicate Finder</div>
     <h1>欄位重複比對台</h1>
-    <p>上傳一份 Excel 或 CSV，指定要檢查重複的欄位（可多選）與識別用的 Key 欄位，找出檔案內重複的項目。所有處理都在瀏覽器內完成，檔案不會被上傳到任何伺服器。</p>
+    <p>上傳一份或多份 Excel／CSV（可一次大量上傳），指定要檢查重複的欄位，比對時會把所有已上傳的檔案合併在一起找重複。解析與比對運算都在背景執行緒進行，畫面不會被卡住，檔案也不會被上傳到任何伺服器。</p>
   </header>
 
   <div class="layout">
@@ -253,11 +298,10 @@
     <div class="upload-single">
       <div class="slot" id="slotS" tabindex="0">
         <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
-        <button class="slot-clear" id="clearS" style="display:none;">清除</button>
         <input type="file" id="fileS" multiple>
         <div class="slot-label">上傳檔案</div>
         <div class="slot-body" id="slotSBody">
-          <div class="slot-main">點擊或拖曳檔案到此處（可一次選多個）</div>
+          <div class="slot-main">點擊或拖曳檔案到此處（可一次選大量檔案，會加入比對範圍）</div>
           <div class="slot-hint">支援 .xlsx / .xls / .csv</div>
         </div>
       </div>
@@ -270,10 +314,6 @@
       </div>
 
       <div class="fields-row" id="fieldsRow">
-        <div class="field-chip key-chip">
-          <span class="chip-label">Key 欄位</span>
-          <select id="colKey" disabled><option>先上傳檔案</option></select>
-        </div>
         <div id="compareFieldsList"></div>
       </div>
 
@@ -298,8 +338,10 @@
 
   <div class="panel files-panel">
     <div class="files-panel-header">
-      <span class="field-label">已上傳檔案</span>
+      <span class="field-label">已上傳檔案（全部納入比對）</span>
+      <button class="clear-all-btn" id="clearAllFilesBtn" style="display:none;">清空全部</button>
     </div>
+    <div class="files-hint">會保留在這個瀏覽器裡，重新整理或關閉分頁不會遺失</div>
     <div class="files-list" id="filesList">
       <div class="files-empty" id="filesEmpty">尚未上傳任何檔案</div>
     </div>
@@ -332,35 +374,347 @@
           <div id="emptyDesc">確認選擇的比對欄位正確，或嘗試切換「忽略大小寫／空白」選項。</div>
         </div>
       </div>
+      <div class="pagination" id="pagination" style="display:none;">
+        <button class="page-btn" id="pagePrev">◀ 上一頁</button>
+        <span class="page-info" id="pageInfo"></span>
+        <button class="page-btn" id="pageNext">下一頁 ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="json-modal-overlay" id="jsonModalOverlay">
+    <div class="json-modal">
+      <div class="json-modal-header">
+        <div>
+          <div class="json-modal-title" id="jsonModalTitle">檔案 JSON 內容</div>
+          <div class="json-modal-meta" id="jsonModalMeta"></div>
+        </div>
+        <div class="json-modal-actions">
+          <button class="json-modal-download" id="jsonModalDownload">下載完整 JSON</button>
+          <button class="json-modal-close" id="jsonModalClose">✕</button>
+        </div>
+      </div>
+      <pre class="json-modal-body" id="jsonModalBody"></pre>
     </div>
   </div>
 
 </div>
 
 <script>
-  const single = { file:null };
-
   function escapeHtml(str){
     return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
 
-  function readWorkbook(file){
+  // ================= 背景執行緒（Web Worker）=================
+  // 解析 Excel、比對運算、IndexedDB 讀寫全部搬到背景執行緒做，
+  // 主執行緒只處理畫面，不管上傳幾百幾千個檔案都不會讓分頁「沒有回應」。
+  const WORKER_SRC = String.raw`
+    importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
+    const DB_NAME = 'fieldComparatorDB';
+    const DB_VERSION = 2;
+    const OLD_STORE_NAME = 'uploadedFiles';
+    const META_STORE = 'meta';
+    const DATA_STORE = 'data';
+    let dbPromise = null;
+
+    function openDB(){
+      if(!self.indexedDB) return Promise.reject(new Error('瀏覽器不支援 IndexedDB'));
+      if(dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          const tx = e.target.transaction;
+          if(!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE, { keyPath:'id' });
+          if(!db.objectStoreNames.contains(DATA_STORE)) db.createObjectStore(DATA_STORE, { keyPath:'id' });
+          // 舊版只有單一 store，把舊資料搬進新的 meta/data 兩個 store，避免升級後資料消失
+          if(db.objectStoreNames.contains(OLD_STORE_NAME)){
+            const oldStore = tx.objectStore(OLD_STORE_NAME);
+            const metaStore = tx.objectStore(META_STORE);
+            const dataStore = tx.objectStore(DATA_STORE);
+            oldStore.openCursor().onsuccess = (ev) => {
+              const cursor = ev.target.result;
+              if(cursor){
+                const old = cursor.value;
+                metaStore.put({
+                  id: old.id, name: old.name, columns: old.columns || [],
+                  model: old.model || null, rowCount: (old.rows || []).length,
+                  uploadedAt: old.uploadedAt
+                });
+                dataStore.put({ id: old.id, rows: old.rows || [] });
+                cursor.continue();
+              } else {
+                db.deleteObjectStore(OLD_STORE_NAME);
+              }
+            };
+          }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+      return dbPromise;
+    }
+
+    async function dbPutMeta(meta){
+      try{
+        const db = await openDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(META_STORE, 'readwrite');
+          tx.objectStore(META_STORE).put(meta);
+          tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+        });
+      } catch(err){}
+    }
+    async function dbPutData(data){
+      try{
+        const db = await openDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(DATA_STORE, 'readwrite');
+          tx.objectStore(DATA_STORE).put(data);
+          tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+        });
+      } catch(err){}
+    }
+    async function dbGetData(id){
+      try{
+        const db = await openDB();
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction(DATA_STORE, 'readonly');
+          const req = tx.objectStore(DATA_STORE).get(id);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      } catch(err){ return null; }
+    }
+    async function dbDeleteBoth(id){
+      try{
+        const db = await openDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction([META_STORE, DATA_STORE], 'readwrite');
+          tx.objectStore(META_STORE).delete(id);
+          tx.objectStore(DATA_STORE).delete(id);
+          tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+        });
+      } catch(err){}
+    }
+    async function dbClearBoth(){
+      try{
+        const db = await openDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction([META_STORE, DATA_STORE], 'readwrite');
+          tx.objectStore(META_STORE).clear();
+          tx.objectStore(DATA_STORE).clear();
+          tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+        });
+      } catch(err){}
+    }
+    async function dbLoadAllMeta(){
+      try{
+        const db = await openDB();
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction(META_STORE, 'readonly');
+          const req = tx.objectStore(META_STORE).getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      } catch(err){ return []; }
+    }
+
+    // store 裡的每個 entry：{ id, name, columns, model, rowCount, uploadedAt, rows }
+    // rows 剛上傳時就有；重開網頁還原時 rows 先是 null，要用到時才向 IndexedDB 拉
+    const store = new Map();
+
+    async function ensureRowsLoaded(entry){
+      if(entry.rows) return entry.rows;
+      const data = await dbGetData(entry.id);
+      entry.rows = (data && data.rows) || [];
+      return entry.rows;
+    }
+
+    function detectItemModel(columns, rows){
+      const col = columns.find(c => c.replace(/[\s_-]/g,'').toLowerCase() === 'itemmodel');
+      if(!col) return null;
+      const SAMPLE_LIMIT = 20000;
+      const sample = rows.length > SAMPLE_LIMIT ? rows.slice(0, SAMPLE_LIMIT) : rows;
+      const counts = new Map();
+      sample.forEach(r => {
+        const v = String(r[col] == null ? '' : r[col]).trim();
+        if(!v) return;
+        counts.set(v, (counts.get(v)||0)+1);
+      });
+      if(!counts.size) return null;
+      let best=null, bestCount=-1;
+      counts.forEach((cnt,v) => { if(cnt>bestCount){ best=v; bestCount=cnt; } });
+      return best;
+    }
+
+    function fileMetaOf(entry){
+      return { id: entry.id, name: entry.name, rowCount: entry.rowCount, columnCount: entry.columns.length, model: entry.model };
+    }
+    function allColumns(){
+      const seen = new Set(); const cols = [];
+      store.forEach(entry => entry.columns.forEach(c => { if(!seen.has(c)){ seen.add(c); cols.push(c); } }));
+      return cols;
+    }
+
+    self.onmessage = async function(e){
+      const msg = e.data;
+      try{
+        if(msg.type === 'init'){
+          // 只讀輕量的 meta store，不管資料量多大都很快，畫面能立刻顯示已上傳的紀錄
+          const metas = await dbLoadAllMeta();
+          metas.sort((a,b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
+          metas.forEach(m => store.set(m.id, { ...m, rows: null }));
+          self.postMessage({ type:'init-ok', reqId: msg.reqId, files: [...store.values()].map(fileMetaOf), columns: allColumns() });
+
+        } else if(msg.type === 'parse'){
+          try{
+            const data = new Uint8Array(msg.buffer);
+            const wb = XLSX.read(data, { type:'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
+            if(!rows.length) throw new Error('檔案內沒有可讀取的資料列');
+            const columns = Object.keys(rows[0]);
+            const model = detectItemModel(columns, rows);
+            const id = Date.now() + '-' + Math.random().toString(36).slice(2,7) + '-' + store.size;
+            const uploadedAt = new Date().toISOString();
+            const entry = { id, name: msg.name, columns, model, rowCount: rows.length, uploadedAt, rows };
+            store.set(id, entry);
+            dbPutMeta({ id, name: entry.name, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt });
+            dbPutData({ id, rows: entry.rows });
+            self.postMessage({ type:'parse-ok', reqId: msg.reqId, file: fileMetaOf(entry), columns: allColumns() });
+          } catch(err){
+            self.postMessage({ type:'parse-err', reqId: msg.reqId, message: (err && err.message) || '無法解析檔案，請確認格式為 .xlsx / .xls / .csv' });
+          }
+
+        } else if(msg.type === 'remove'){
+          store.delete(msg.id);
+          dbDeleteBoth(msg.id);
+          self.postMessage({ type:'remove-ok', reqId: msg.reqId, columns: allColumns() });
+
+        } else if(msg.type === 'get-file-data'){
+          const entry = store.get(msg.id);
+          if(!entry){
+            self.postMessage({ type:'get-file-data-err', reqId: msg.reqId, message: '找不到這個檔案的資料（可能已經被移除）' });
+          } else {
+            await ensureRowsLoaded(entry);
+            self.postMessage({ type:'get-file-data-ok', reqId: msg.reqId, name: entry.name, columns: entry.columns, rows: entry.rows });
+          }
+
+        } else if(msg.type === 'clear-all'){
+          store.clear();
+          dbClearBoth();
+          self.postMessage({ type:'clear-all-ok', reqId: msg.reqId });
+
+        } else if(msg.type === 'compare'){
+          const { compareCols, compareMode, ignoreCase, ignoreSpace } = msg;
+          const normalize = (v) => {
+            let s = String(v == null ? '' : v);
+            if(ignoreSpace) s = s.trim();
+            if(ignoreCase) s = s.toLowerCase();
+            return s;
+          };
+
+          // 比對需要用到完整的資料列，重開網頁後第一次比對時才會即時把還沒載入的檔案資料補齊
+          await Promise.all([...store.values()].map(ensureRowsLoaded));
+
+          const allRows = [];
+          store.forEach(entry => entry.rows.forEach(r => allRows.push({ file: entry.name, row: r })));
+          const cols = allColumns();
+
+          function buildRowGroups(){
+            const groups = [];
+            for(let i=0;i<compareCols.length;i++){
+              for(let j=i+1;j<compareCols.length;j++){
+                const a=compareCols[i], b=compareCols[j];
+                const matched = allRows.filter(item => {
+                  const va = normalize(item.row[a]);
+                  const vb = normalize(item.row[b]);
+                  return va !== '' && va === vb;
+                });
+                if(matched.length) groups.push({ mode:'horizontal', label: a+' = '+b, matchedFields:[a,b], items: matched });
+              }
+            }
+            return groups;
+          }
+          function buildColumnGroups(){
+            const groups = [];
+            compareCols.forEach(c => {
+              const map = new Map();
+              allRows.forEach(item => {
+                const v = normalize(item.row[c]);
+                if(v==='') return;
+                if(!map.has(v)) map.set(v, []);
+                map.get(v).push(item);
+              });
+              map.forEach(arr => {
+                if(arr.length>1) groups.push({ mode:'vertical', label: c+'（值：'+arr[0].row[c]+'）', matchedFields:[c], items: arr });
+              });
+            });
+            return groups;
+          }
+
+          let allGroups = [];
+          if(compareMode==='horizontal'||compareMode==='both') allGroups = allGroups.concat(buildRowGroups());
+          if(compareMode==='vertical'||compareMode==='both') allGroups = allGroups.concat(buildColumnGroups());
+
+          const flat = [];
+          allGroups.forEach((g,gi) => g.items.forEach(item => flat.push({
+            groupIndex: gi, mode: g.mode, label: g.label, matchedFields: g.matchedFields, file: item.file, row: item.row
+          })));
+
+          self.postMessage({
+            type:'compare-ok', reqId: msg.reqId,
+            flat, groupCount: allGroups.length, totalRows: allRows.length, fileCount: store.size, cols
+          });
+        }
+      } catch(err){
+        self.postMessage({ type:'error', reqId: msg.reqId, message: (err && err.message) || '背景執行緒發生未預期的錯誤' });
+
+      }
+    };
+  
+`;
+
+  let worker = null;
+  let reqCounter = 0;
+  const pending = new Map();
+
+  function getWorker(){
+    if(worker) return worker;
+    const blob = new Blob([WORKER_SRC], { type: 'application/javascript' });
+    worker = new Worker(URL.createObjectURL(blob));
+    worker.onmessage = (e) => {
+      const msg = e.data;
+      const p = pending.get(msg.reqId);
+      if(!p) return;
+      pending.delete(msg.reqId);
+      if(msg.type && (msg.type.endsWith('-err') || msg.type === 'error')) p.reject(new Error(msg.message));
+      else p.resolve(msg);
+    };
+    worker.onerror = (e) => {
+      pending.forEach(p => p.reject(new Error('背景執行緒發生錯誤：' + e.message)));
+      pending.clear();
+    };
+    return worker;
+  }
+
+  function workerCall(payload, transfer){
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try{
-          const data = new Uint8Array(e.target.result);
-          const wb = XLSX.read(data, { type:'array' });
-          const sheet = wb.Sheets[wb.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
-          if(!rows.length) return reject(new Error('檔案內沒有可讀取的資料列'));
-          resolve({ rows, columns: Object.keys(rows[0]) });
-        } catch(err){ reject(new Error('無法解析檔案，請確認格式為 .xlsx / .xls / .csv')); }
-      };
-      reader.onerror = () => reject(new Error('讀取檔案時發生錯誤'));
-      reader.readAsArrayBuffer(file);
+      let w;
+      try{ w = getWorker(); } catch(err){ reject(err); return; }
+      const reqId = ++reqCounter;
+      pending.set(reqId, { resolve, reject });
+      w.postMessage({ ...payload, reqId }, transfer || []);
     });
   }
+
+  // ================= 主執行緒狀態（只存輕量的中繼資料，不存整份資料）=================
+  let fileMeta = []; // [{id,name,rowCount,columnCount,model}]
+  let cachedColumns = [];
+  const expandedGroups = new Set();
+  const GROUP_INITIAL_SHOW = 50;
 
   // ---------- compare-field rows (dynamic count) ----------
   const compareFieldsList = document.getElementById('compareFieldsList');
@@ -375,12 +729,6 @@
     row.appendChild(label);
     const sel = document.createElement('select');
     sel.className = 'compare-field-select';
-    if(single.file){
-      sel.innerHTML = single.file.columns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-    } else {
-      sel.disabled = true;
-      sel.innerHTML = '<option>先上傳檔案</option>';
-    }
     row.appendChild(sel);
     return row;
   }
@@ -392,13 +740,16 @@
     } else if(count < rows.length){
       for(let i = rows.length - 1; i >= count; i--) rows[i].remove();
     }
+    refreshCompareFieldOptions();
   }
 
   function refreshCompareFieldOptions(){
     compareFieldsList.querySelectorAll('.compare-field-select').forEach(sel => {
-      if(single.file){
+      const prev = sel.value;
+      if(cachedColumns.length){
         sel.disabled = false;
-        sel.innerHTML = single.file.columns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        sel.innerHTML = cachedColumns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        if(cachedColumns.includes(prev)) sel.value = prev;
       } else {
         sel.disabled = true;
         sel.innerHTML = '<option>先上傳檔案</option>';
@@ -420,110 +771,92 @@
   const slot = document.getElementById('slotS');
   const input = document.getElementById('fileS');
   const body = document.getElementById('slotSBody');
-  const clearBtn = document.getElementById('clearS');
 
-  function applyActiveEntry(entry){
-    single.file = { rows: entry.rows, columns: entry.columns };
+  function refreshMainSlotDisplay(){
+    if(!fileMeta.length){
+      slot.classList.remove('loaded');
+      body.innerHTML = `<div class="slot-main">點擊或拖曳檔案到此處（可一次選大量檔案，會加入比對範圍）</div><div class="slot-hint">支援 .xlsx / .xls / .csv</div>`;
+      return;
+    }
     slot.classList.add('loaded');
+    const totalRows = fileMeta.reduce((sum, f) => sum + f.rowCount, 0);
     body.innerHTML = `
-      <div class="slot-file">${escapeHtml(entry.name)}</div>
-      <div class="slot-meta">${entry.rows.length} 列・${entry.columns.length} 欄</div>`;
-    clearBtn.style.display = 'block';
-    const colKey = document.getElementById('colKey');
-    colKey.disabled = false;
-    colKey.innerHTML = entry.columns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-    refreshCompareFieldOptions();
-    document.getElementById('results').classList.remove('show');
-    checkReady();
+      <div class="slot-file">已上傳 ${fileMeta.length} 個檔案，共 ${totalRows} 列</div>
+      <div class="slot-meta">比對時會把這些檔案合併在一起找重複。點擊或拖曳可以再加入更多檔案</div>`;
   }
 
-  function detectItemModel(entry){
-    const col = entry.columns.find(c => c.replace(/[\s_-]/g, '').toLowerCase() === 'itemmodel');
-    if(!col) return null;
-    const counts = new Map();
-    entry.rows.forEach(r => {
-      const v = String(r[col] ?? '').trim();
-      if(!v) return;
-      counts.set(v, (counts.get(v) || 0) + 1);
-    });
-    if(!counts.size) return null;
-    let best = null, bestCount = -1;
-    counts.forEach((cnt, v) => { if(cnt > bestCount){ best = v; bestCount = cnt; } });
-    return best;
-  }
+  function checkReady(){ document.getElementById('runBtnS').disabled = !fileMeta.length; }
+  function showSingleError(msg){ document.getElementById('errorMsgS').textContent = msg; }
+  function clearSingleError(){ document.getElementById('errorMsgS').textContent = ''; }
 
   async function handleFiles(fileList){
     clearSingleError();
     const files = Array.from(fileList || []);
     if(!files.length) return;
     const errors = [];
-    let lastEntry = null;
-    for(const file of files){
+    const skipped = [];
+    const total = files.length;
+    const knownNames = new Set(fileMeta.map(f => f.name)); // 已存在的檔名，包含這一批次裡剛加入的
+
+    for(let i = 0; i < files.length; i++){
+      const file = files[i];
+
+      // 偵測到同檔名的檔案已經上傳過（包含這一批次裡先前處理過的），直接跳過不重複解析
+      if(knownNames.has(file.name)){
+        skipped.push(file.name);
+        continue;
+      }
+
+      const pct = Math.round((i / total) * 100);
+      slot.classList.add('loaded');
+      body.innerHTML = `
+        <div class="slot-file">正在解析中…（${i + 1} / ${total}）</div>
+        <div class="slot-meta">${escapeHtml(file.name)}</div>
+        <div class="upload-progress-track"><div class="upload-progress-fill" style="width:${pct}%"></div></div>`;
+      // 讓出主執行緒一個 tick，讓瀏覽器有機會重繪上面的進度文字
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       try{
-        const parsed = await readWorkbook(file);
-        const id = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-        const entry = { id, name: file.name, rows: parsed.rows, columns: parsed.columns, uploadedAt: new Date() };
-        entry.model = detectItemModel(entry);
-        uploadedFiles.push(entry);
-        lastEntry = entry;
+        const buffer = await file.arrayBuffer();
+        const res = await workerCall({ type:'parse', buffer, name: file.name }, [buffer]);
+        fileMeta.push(res.file);
+        cachedColumns = res.columns;
+        knownNames.add(file.name);
       } catch(err){
         errors.push(`${file.name}：${err.message}`);
       }
     }
-    if(lastEntry){
-      activeFileId = lastEntry.id;
-      applyActiveEntry(lastEntry);
-    }
+
+    refreshCompareFieldOptions();
+    refreshMainSlotDisplay();
+    document.getElementById('results').classList.remove('show');
+    checkReady();
     renderFilesList();
-    if(errors.length) showSingleError(errors.join('；'));
+
+    const messages = [];
+    if(skipped.length) messages.push(`${skipped.length} 個檔案因檔名重複已跳過：` + skipped.slice(0, 5).join('、') + (skipped.length > 5 ? ` …等共 ${skipped.length} 個` : ''));
+    if(errors.length) messages.push(`${errors.length} 個檔案解析失敗：` + errors.slice(0, 5).join('；') + (errors.length > 5 ? ` …等共 ${errors.length} 個` : ''));
+    if(messages.length) showSingleError(messages.join('　'));
   }
 
   slot.addEventListener('click', () => input.click());
   slot.addEventListener('keydown', (e) => { if(e.key==='Enter'||e.key===' ') input.click(); });
-  input.addEventListener('change', (e) => { handleFiles(e.target.files); });
+  input.addEventListener('change', (e) => { handleFiles(e.target.files); input.value = ''; });
   ['dragover','dragenter'].forEach(ev => slot.addEventListener(ev, (e)=>{ e.preventDefault(); slot.classList.add('drag'); }));
   ['dragleave','drop'].forEach(ev => slot.addEventListener(ev, (e)=>{ e.preventDefault(); slot.classList.remove('drag'); }));
   slot.addEventListener('drop', (e) => { handleFiles(e.dataTransfer.files); });
 
-  function resetSlotToEmpty(){
-    single.file = null;
-    slot.classList.remove('loaded');
-    body.innerHTML = `<div class="slot-main">點擊或拖曳檔案到此處（可一次選多個）</div><div class="slot-hint">支援 .xlsx / .xls / .csv</div>`;
-    clearBtn.style.display = 'none';
-    const colKey = document.getElementById('colKey');
-    colKey.disabled = true;
-    colKey.innerHTML = '<option>先上傳檔案</option>';
-    compareCountInput.value = 1;
-    syncCompareFields(1);
-    refreshCompareFieldOptions();
-    input.value = '';
-    document.getElementById('results').classList.remove('show');
-    checkReady();
-  }
-
-  clearBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    activeFileId = null;
-    resetSlotToEmpty();
-    renderFilesList();
-  });
-
-  function checkReady(){ document.getElementById('runBtnS').disabled = !single.file; }
-  function showSingleError(msg){ document.getElementById('errorMsgS').textContent = msg; }
-  function clearSingleError(){ document.getElementById('errorMsgS').textContent = ''; }
-
-  // ---------- 已上傳檔案清單（歷史紀錄） ----------
-  const uploadedFiles = []; // { id, name, rows, columns, uploadedAt }
-  let activeFileId = null;
-
+  // ---------- 已上傳檔案清單（分組 + 分頁顯示，避免上千筆一次塞進 DOM）----------
   function renderFilesList(){
     const list = document.getElementById('filesList');
-    if(!uploadedFiles.length){
+    const clearAllBtn = document.getElementById('clearAllFilesBtn');
+    clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
+    if(!fileMeta.length){
       list.innerHTML = '<div class="files-empty" id="filesEmpty">尚未上傳任何檔案</div>';
       return;
     }
     const groups = new Map(); // model label -> entries[]
-    uploadedFiles.forEach(f => {
+    fileMeta.forEach(f => {
       const label = f.model || '未分類';
       if(!groups.has(label)) groups.set(label, []);
       groups.get(label).push(f);
@@ -536,50 +869,106 @@
 
     let html = '';
     groupEntries.forEach(([label, files]) => {
+      const isExpanded = expandedGroups.has(label);
+      const visibleFiles = isExpanded ? files : files.slice(0, GROUP_INITIAL_SHOW);
       html += `<div class="file-group-label">${escapeHtml(label)}<span class="file-group-count">${files.length}</span></div>`;
-      html += files.map(f => `
-        <div class="file-item ${f.id===activeFileId?'active':''}" data-id="${f.id}">
+      html += visibleFiles.map(f => `
+        <div class="file-item" data-id="${f.id}">
           <div class="file-item-main">
             <div class="file-item-name">${escapeHtml(f.name)}</div>
-            <div class="file-item-meta">${f.rows.length} 列・${f.columns.length} 欄</div>
+            <div class="file-item-meta">${f.rowCount} 列・${f.columnCount} 欄</div>
           </div>
           <div class="file-item-actions">
+            <button class="file-json-btn" data-id="${f.id}">查看 JSON</button>
             <button class="file-remove-btn" data-id="${f.id}">移除</button>
           </div>
         </div>
       `).join('');
+      if(!isExpanded && files.length > GROUP_INITIAL_SHOW){
+        html += `<button class="show-more-btn" data-label="${escapeHtml(label)}">顯示全部（還有 ${files.length - GROUP_INITIAL_SHOW} 筆）</button>`;
+      }
     });
     list.innerHTML = html;
-    list.querySelectorAll('.file-item').forEach(el => {
-      el.addEventListener('click', () => selectFromHistory(el.dataset.id));
+    list.querySelectorAll('.file-json-btn').forEach(btn => {
+      btn.addEventListener('click', () => openJsonModal(btn.dataset.id));
     });
     list.querySelectorAll('.file-remove-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); removeFromHistory(btn.dataset.id); });
+      btn.addEventListener('click', () => removeFromHistory(btn.dataset.id));
+    });
+    list.querySelectorAll('.show-more-btn').forEach(btn => {
+      btn.addEventListener('click', () => { expandedGroups.add(btn.dataset.label); renderFilesList(); });
     });
   }
 
-  function selectFromHistory(id){
-    const entry = uploadedFiles.find(f => f.id === id);
-    if(!entry) return;
-    clearSingleError();
-    activeFileId = id;
-    applyActiveEntry(entry);
-    renderFilesList();
+  async function removeFromHistory(id){
+    try{
+      const res = await workerCall({ type:'remove', id });
+      fileMeta = fileMeta.filter(f => f.id !== id);
+      cachedColumns = res.columns;
+      refreshCompareFieldOptions();
+      refreshMainSlotDisplay();
+      document.getElementById('results').classList.remove('show');
+      checkReady();
+      renderFilesList();
+    } catch(err){ showSingleError('移除檔案時發生錯誤：' + err.message); }
   }
 
-  function removeFromHistory(id){
-    const idx = uploadedFiles.findIndex(f => f.id === id);
-    if(idx === -1) return;
-    uploadedFiles.splice(idx, 1);
-    if(activeFileId === id){
-      activeFileId = null;
-      resetSlotToEmpty();
+  // ---------- JSON 檢視 Modal（上傳後轉成的 JSON 內容，點按鈕才向背景執行緒取回）----------
+  const JSON_PREVIEW_LIMIT = 500; // 畫面上最多顯示這麼多列，避免超大檔案讓瀏覽器卡住
+  const jsonModalOverlay = document.getElementById('jsonModalOverlay');
+  const jsonModalTitle = document.getElementById('jsonModalTitle');
+  const jsonModalMeta = document.getElementById('jsonModalMeta');
+  const jsonModalBody = document.getElementById('jsonModalBody');
+  const jsonModalDownload = document.getElementById('jsonModalDownload');
+  let currentJsonFile = null; // { name, rows } 給下載按鈕用
+
+  async function openJsonModal(id){
+    jsonModalTitle.textContent = '讀取中…';
+    jsonModalMeta.textContent = '';
+    jsonModalBody.textContent = '';
+    jsonModalOverlay.classList.add('show');
+    try{
+      const res = await workerCall({ type:'get-file-data', id });
+      currentJsonFile = { name: res.name, rows: res.rows };
+      jsonModalTitle.textContent = res.name;
+      const shown = res.rows.length > JSON_PREVIEW_LIMIT ? res.rows.slice(0, JSON_PREVIEW_LIMIT) : res.rows;
+      jsonModalMeta.textContent = res.rows.length > JSON_PREVIEW_LIMIT
+        ? `共 ${res.rows.length} 列，畫面上僅預覽前 ${JSON_PREVIEW_LIMIT} 列，完整內容請用右上角下載`
+        : `共 ${res.rows.length} 列`;
+      jsonModalBody.textContent = JSON.stringify(shown, null, 2);
+    } catch(err){
+      jsonModalTitle.textContent = '讀取失敗';
+      jsonModalBody.textContent = err.message;
+      currentJsonFile = null;
     }
-    renderFilesList();
   }
 
-  // ---------- results rendering / search / export ----------
+  function closeJsonModal(){
+    jsonModalOverlay.classList.remove('show');
+    currentJsonFile = null;
+  }
+
+  document.getElementById('jsonModalClose').addEventListener('click', closeJsonModal);
+  jsonModalOverlay.addEventListener('click', (e) => { if(e.target === jsonModalOverlay) closeJsonModal(); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && jsonModalOverlay.classList.contains('show')) closeJsonModal(); });
+
+  jsonModalDownload.addEventListener('click', () => {
+    if(!currentJsonFile) return;
+    const jsonText = JSON.stringify(currentJsonFile.rows, null, 2);
+    const blob = new Blob([jsonText], { type:'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentJsonFile.name.replace(/\.(xlsx|xls|csv)$/i, '') + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // ---------- results rendering / search / export（分頁渲染，避免大量結果一次塞進 DOM）----------
   let resultsCtx = null;
+  const PAGE_SIZE = 200;
+  let currentList = [];   // 目前搜尋篩選後的完整結果（分頁前）
+  let currentPage = 1;
 
   function openResults(){ document.getElementById('results').classList.add('show'); }
 
@@ -590,27 +979,59 @@
   }
 
   function paintTable(headHtml, list){
+    document.getElementById('tableHead').innerHTML = headHtml;
+    currentList = list;
+    currentPage = 1;
+    renderCurrentPage();
+  }
+
+  function renderCurrentPage(){
     const table = document.getElementById('resultTable');
     const emptyState = document.getElementById('emptyState');
-    document.getElementById('tableHead').innerHTML = headHtml;
-    if(!list.length){
+    const pagination = document.getElementById('pagination');
+
+    if(!currentList.length){
       table.style.display = 'none';
       emptyState.style.display = 'block';
+      pagination.style.display = 'none';
       document.getElementById('tableBody').innerHTML = '';
       return;
     }
+
     table.style.display = 'table';
     emptyState.style.display = 'none';
-    resultsCtx.renderRows(list);
+
+    const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE));
+    if(currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageSlice = currentList.slice(start, start + PAGE_SIZE);
+    resultsCtx.renderRows(pageSlice);
+
+    if(totalPages > 1){
+      pagination.style.display = 'flex';
+      document.getElementById('pageInfo').textContent =
+        `第 ${currentPage} / ${totalPages} 頁（共 ${currentList.length} 筆，每頁顯示 ${PAGE_SIZE} 筆）`;
+      document.getElementById('pagePrev').disabled = currentPage <= 1;
+      document.getElementById('pageNext').disabled = currentPage >= totalPages;
+    } else {
+      pagination.style.display = 'none';
+    }
   }
+
+  document.getElementById('pagePrev').addEventListener('click', () => {
+    if(currentPage > 1){ currentPage--; renderCurrentPage(); }
+  });
+  document.getElementById('pageNext').addEventListener('click', () => {
+    const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE));
+    if(currentPage < totalPages){ currentPage++; renderCurrentPage(); }
+  });
 
   document.getElementById('searchBox').addEventListener('input', (e) => {
     if(!resultsCtx) return;
     const q = e.target.value.trim().toLowerCase();
-    const filtered = q ? resultsCtx.dataset.filter(item => resultsCtx.matchQuery(item, q)) : resultsCtx.dataset;
-    resultsCtx.renderRows(filtered);
-    document.getElementById('resultTable').style.display = filtered.length ? 'table' : 'none';
-    document.getElementById('emptyState').style.display = filtered.length ? 'none' : 'block';
+    currentList = q ? resultsCtx.dataset.filter(item => resultsCtx.matchQuery(item, q)) : resultsCtx.dataset;
+    currentPage = 1;
+    renderCurrentPage();
   });
 
   document.getElementById('exportBtn').addEventListener('click', () => {
@@ -629,119 +1050,117 @@
     URL.revokeObjectURL(url);
   });
 
-  // ---------- duplicate finder ----------
-  document.getElementById('runBtnS').addEventListener('click', () => {
+  // ---------- duplicate finder（比對運算完全在背景執行緒跑）----------
+  document.getElementById('runBtnS').addEventListener('click', async () => {
     clearSingleError();
-    const keyCol = document.getElementById('colKey').value;
+    if(!fileMeta.length){ showSingleError('請先上傳至少一個檔案'); return; }
     const compareCols = Array.from(document.querySelectorAll('.compare-field-select')).map(s => s.value);
-
-    if(!keyCol){ showSingleError('請先選擇 Key 欄位'); return; }
     if(!compareCols.length || compareCols.some(c => !c)){ showSingleError('請先選擇所有比對欄位'); return; }
 
     const ignoreCase = document.getElementById('ignoreCaseS').checked;
     const ignoreSpace = document.getElementById('ignoreSpaceS').checked;
-    const normalize = (v) => {
-      let s = String(v ?? '');
-      if(ignoreSpace) s = s.trim();
-      if(ignoreCase) s = s.toLowerCase();
-      return s;
-    };
-
-    const compareMode = document.querySelector('input[name="compareMode"]:checked').value; // horizontal | vertical | both
+    const compareMode = document.querySelector('input[name="compareMode"]:checked').value;
     if((compareMode === 'horizontal' || compareMode === 'both') && compareCols.length < 2){
       showSingleError('橫排比對需要至少選擇 2 個比對欄位（用來比較同一列中欄位彼此是否相同）');
       return;
     }
 
-    const rows = single.file.rows;
-    const cols = single.file.columns;
+    const runBtn = document.getElementById('runBtnS');
+    const originalBtnText = runBtn.textContent;
+    runBtn.disabled = true;
+    runBtn.textContent = '運算中…';
 
-    // 橫排比對：同一列中，選取的比對欄位彼此的值是否相同（例：12345，同一筆資料內部比對）
-    function buildRowGroups(){
-      const groups = [];
-      for(let i = 0; i < compareCols.length; i++){
-        for(let j = i + 1; j < compareCols.length; j++){
-          const a = compareCols[i], b = compareCols[j];
-          const matched = rows.filter(r => {
-            const va = normalize(r[a]);
-            const vb = normalize(r[b]);
-            return va !== '' && va === vb;
-          });
-          if(matched.length) groups.push({ mode:'horizontal', label: `${a} = ${b}`, matchedFields:[a,b], rows: matched });
-        }
-      }
-      return groups;
-    }
+    try{
+      const res = await workerCall({ type:'compare', compareCols, compareMode, ignoreCase, ignoreSpace });
+      const { flat, groupCount, totalRows, fileCount, cols } = res;
 
-    // 直排比對：同一個比對欄位裡，不同列的值是否相同（例：1／2／3／4／5，同一欄往下比、跨列）
-    function buildColumnGroups(){
-      const groups = [];
-      compareCols.forEach(c => {
-        const map = new Map();
-        rows.forEach(r => {
-          const v = normalize(r[c]);
-          if(v === '') return;
-          if(!map.has(v)) map.set(v, []);
-          map.get(v).push(r);
-        });
-        map.forEach(arr => {
-          if(arr.length > 1) groups.push({ mode:'vertical', label: `${c}（值：${arr[0][c]}）`, matchedFields:[c], rows: arr });
-        });
+      const distinctRows = new Set(flat.map(item => item.row));
+      const distinctCount = distinctRows.size;
+      const pct = totalRows ? Math.round((distinctCount/totalRows)*100) : 0;
+      const modeLabel = { horizontal:'橫排比對', vertical:'直排比對', both:'橫排＋直排' }[compareMode];
+      setGauge(distinctCount + ' <span>筆列有重複</span>', pct, `
+        <div class="stat">涵蓋檔案 <b>${fileCount}</b> 個</div>
+        <div class="stat">總列數 <b>${totalRows}</b></div>
+        <div class="stat">比對方向 <b>${modeLabel}</b></div>
+        <div class="stat">重複值組數 <b>${groupCount}</b></div>
+        <div class="stat">重複列比例 <b>${pct}%</b></div>`);
+
+      let headHtml = '<th class="srcfile">來源檔案</th><th class="key">重複欄位</th>';
+      cols.forEach(c => {
+        const isCompare = compareCols.includes(c);
+        const cls = isCompare ? 'cmp' : '';
+        headHtml += `<th class="${cls}">${escapeHtml(c)}</th>`;
       });
-      return groups;
+
+      resultsCtx = {
+        dataset: flat,
+        renderRows(list){
+          document.getElementById('tableBody').innerHTML = list.map(item => {
+            const modeTag = item.mode === 'horizontal' ? '橫' : '直';
+            let row = `<tr class="${item.groupIndex%2===1?'group-alt':''}"><td class="srcfile">${escapeHtml(item.file)}</td><td class="hitfield mode-${item.mode}">[${modeTag}] ${escapeHtml(item.label)}</td>`;
+            cols.forEach(c => {
+              const cls = item.matchedFields.includes(c) ? 'key' : '';
+              row += `<td class="${cls}">${escapeHtml(item.row[c] ?? '')}</td>`;
+            });
+            row += '</tr>';
+            return row;
+          }).join('');
+        },
+        matchQuery(item, q){
+          const hay = [item.file, item.label, ...cols.map(c => item.row[c])].join(' ').toLowerCase();
+          return hay.includes(q);
+        },
+        exportHeader: ['來源檔案', '比對方向', '重複欄位', ...cols],
+        exportRow(item){ return [item.file, item.mode==='horizontal'?'橫排':'直排', item.label, ...cols.map(c=>item.row[c] ?? '')]; }
+      };
+
+      document.getElementById('searchBox').value = '';
+      openResults();
+      paintTable(headHtml, flat);
+    } catch(err){
+      showSingleError('比對時發生錯誤：' + err.message);
+    } finally {
+      runBtn.textContent = originalBtnText;
+      checkReady();
     }
-
-    let allGroups = [];
-    if(compareMode === 'horizontal' || compareMode === 'both') allGroups = allGroups.concat(buildRowGroups());
-    if(compareMode === 'vertical' || compareMode === 'both') allGroups = allGroups.concat(buildColumnGroups());
-
-    const flat = [];
-    allGroups.forEach((g, gi) => g.rows.forEach(r => flat.push({ groupIndex: gi, mode: g.mode, label: g.label, matchedFields: g.matchedFields, row: r })));
-
-    const distinctRows = new Set(flat.map(item => item.row));
-    const distinctCount = distinctRows.size;
-    const pct = rows.length ? Math.round((distinctCount/rows.length)*100) : 0;
-    const modeLabel = { horizontal:'橫排比對', vertical:'直排比對', both:'橫排＋直排' }[compareMode];
-    setGauge(distinctCount + ' <span>筆列有重複</span>', pct, `
-      <div class="stat">總列數 <b>${rows.length}</b></div>
-      <div class="stat">比對方向 <b>${modeLabel}</b></div>
-      <div class="stat">重複值組數 <b>${allGroups.length}</b></div>
-      <div class="stat">重複判定次數 <b>${flat.length}</b></div>
-      <div class="stat">重複列比例 <b>${pct}%</b></div>`);
-
-    let headHtml = '<th class="key">重複欄位</th>';
-    cols.forEach(c => {
-      const isCompare = compareCols.includes(c);
-      const cls = c===keyCol ? 'keycol' : (isCompare ? 'cmp' : '');
-      headHtml += `<th class="${cls}">${escapeHtml(c)}${c===keyCol?'（Key）':''}</th>`;
-    });
-
-    resultsCtx = {
-      dataset: flat,
-      renderRows(list){
-        document.getElementById('tableBody').innerHTML = list.map(item => {
-          const modeTag = item.mode === 'horizontal' ? '橫' : '直';
-          let row = `<tr class="${item.groupIndex%2===1?'group-alt':''}"><td class="hitfield mode-${item.mode}">[${modeTag}] ${escapeHtml(item.label)}</td>`;
-          cols.forEach(c => {
-            const cls = c===keyCol ? 'keycol' : (item.matchedFields.includes(c) ? 'key' : '');
-            row += `<td class="${cls}">${escapeHtml(item.row[c])}</td>`;
-          });
-          row += '</tr>';
-          return row;
-        }).join('');
-      },
-      matchQuery(item, q){
-        const hay = [item.label, ...cols.map(c => item.row[c])].join(' ').toLowerCase();
-        return hay.includes(q);
-      },
-      exportHeader: ['比對方向', '重複欄位', ...cols],
-      exportRow(item){ return [item.mode==='horizontal'?'橫排':'直排', item.label, ...cols.map(c=>item.row[c])]; }
-    };
-
-    document.getElementById('searchBox').value = '';
-    openResults();
-    paintTable(headHtml, flat);
   });
+
+  // ---------- 清空全部 ----------
+  document.getElementById('clearAllFilesBtn').addEventListener('click', async () => {
+    if(!fileMeta.length) return;
+    if(!confirm('確定要清空全部已上傳的檔案紀錄嗎？這個動作無法復原。')) return;
+    try{
+      await workerCall({ type:'clear-all' });
+      fileMeta = [];
+      cachedColumns = [];
+      expandedGroups.clear();
+      refreshCompareFieldOptions();
+      refreshMainSlotDisplay();
+      compareCountInput.value = 1;
+      syncCompareFields(1);
+      document.getElementById('results').classList.remove('show');
+      checkReady();
+      renderFilesList();
+    } catch(err){ showSingleError('清空時發生錯誤：' + err.message); }
+  });
+
+  // ---------- 頁面載入時，向背景執行緒要回上次保留的檔案清單 ----------
+  (async function init(){
+    // 先給一個簡短提示，即使現在讀取已經很快，慢速裝置或大量紀錄時使用者也知道系統正在動作
+    document.getElementById('filesList').innerHTML = '<div class="files-empty">正在讀取先前的紀錄…</div>';
+    try{
+      const res = await workerCall({ type:'init' });
+      fileMeta = res.files;
+      cachedColumns = res.columns;
+      refreshCompareFieldOptions();
+      refreshMainSlotDisplay();
+      checkReady();
+      renderFilesList();
+    } catch(err){
+      showSingleError('初始化背景執行緒失敗，請確認瀏覽器支援 Web Worker：' + err.message);
+      renderFilesList();
+    }
+  })();
 </script>
 </body>
 </html>
