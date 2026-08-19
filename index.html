@@ -37,7 +37,7 @@
   }
   .wrap{ max-width:1080px; margin:0 auto; }
 
-  header{ margin-bottom:30px; }
+  header{ margin-bottom:22px; }
   .eyebrow{
     font-family:'IBM Plex Mono', monospace;
     font-size:11px; letter-spacing:0.22em; font-weight:600;
@@ -58,6 +58,44 @@
     border-radius:2px;
     box-shadow:0 1px 0 rgba(27,35,43,0.03);
   }
+  .panel-body{ padding:18px 22px; }
+
+  .api-config-panel{ margin-bottom:20px; }
+  .api-status-bar{
+    display:flex; align-items:center; gap:8px; padding:8px 4px; margin-bottom:12px;
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted);
+  }
+  .api-status-bar .dot{ width:6px; height:6px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+  .api-status-bar .dot.ok{ background:var(--success); }
+  .api-status-bar .dot.bad{ background:var(--danger); }
+  .api-status-bar .dot.pending{ background:var(--steel); }
+  .config-row{ display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+  .config-row .field-group{ flex:1; min-width:260px; }
+  input[type=text]{
+    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:2px;
+    font-family:'IBM Plex Mono', monospace; font-size:13px; background:var(--card-bg); color:var(--ink);
+  }
+  .save-btn{
+    font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:12.5px; letter-spacing:.03em;
+    border:1px solid var(--steel); background:none; color:var(--steel); padding:9px 16px;
+    border-radius:2px; cursor:pointer; white-space:nowrap;
+  }
+  .save-btn:hover{ background:var(--steel); color:#fff; }
+  .status-pill{
+    display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px; padding:4px 10px; border-radius:20px; margin-top:10px;
+  }
+  .status-pill.ok{ background:var(--success-tint); color:var(--success); }
+  .status-pill.bad{ background:rgba(168,72,47,0.1); color:var(--danger); }
+  .status-pill.pending{ background:var(--steel-tint); color:var(--steel); }
+  .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; display:inline-block; }
+  .db-badge{
+    display:inline-flex; align-items:center; gap:4px; font-family:'IBM Plex Mono',monospace; font-size:9.5px;
+    padding:1px 6px; border-radius:2px; margin-top:4px; letter-spacing:.02em;
+  }
+  .db-badge.ok{ background:var(--success-tint); color:var(--success); }
+  .db-badge.bad{ background:rgba(168,72,47,0.1); color:var(--danger); }
+  .db-badge.off{ background:#F0F0EE; color:var(--muted); }
 
   .layout{ display:flex; gap:20px; align-items:flex-start; }
   .main-panel{ flex:1 1 640px; min-width:0; }
@@ -88,7 +126,7 @@
   .file-item-main{ flex:1; min-width:0; }
   .file-item-name{ font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; word-break:break-all; line-height:1.3; }
   .file-item-meta{ font-size:11px; color:var(--muted); margin-top:3px; }
-  .file-item-actions{ display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+  .file-item-actions{ display:flex; flex-direction:column; gap:4px; flex-shrink:0; align-items:flex-end; }
   .file-remove-btn{
     font-family:'IBM Plex Mono',monospace; font-size:10.5px; border:1px solid var(--border);
     background:#fff; border-radius:2px; padding:3px 7px; cursor:pointer; color:var(--muted); white-space:nowrap;
@@ -209,7 +247,7 @@
   }
   .run-btn:hover:not(:disabled){ background:var(--steel-dark); }
   .run-btn:disabled{ background:#C6CDD1; cursor:not-allowed; }
-  .error-msg{ color:var(--danger); font-size:13px; margin-top:12px; font-family:'IBM Plex Mono',monospace; }
+  .error-msg{ color:var(--danger); font-size:13px; margin-top:12px; font-family:'IBM Plex Mono',monospace; white-space:pre-line; }
 
   .results{ margin-top:34px; display:none; }
   .results.show{ display:block; }
@@ -290,8 +328,25 @@
   <header>
     <div class="eyebrow">Duplicate Finder</div>
     <h1>欄位重複比對台</h1>
-    <p>上傳一份或多份 Excel／CSV（可一次大量上傳），指定要檢查重複的欄位，比對時會把所有已上傳的檔案合併在一起找重複。解析與比對運算都在背景執行緒進行，畫面不會被卡住，檔案也不會被上傳到任何伺服器。</p>
+    <p>上傳一份或多份 Excel／CSV（可一次大量上傳），指定要檢查重複的欄位，比對時會把所有已上傳的檔案合併在一起找重複。解析與比對運算都在背景執行緒進行，畫面不會被卡住。每次上傳同時會把資料存進下面設定的資料庫。</p>
   </header>
+
+  <div class="api-status-bar" id="apiStatusBar">
+    <span class="dot" id="apiStatusDot"></span>
+    <span id="apiStatusText">資料庫連線設定</span>
+  </div>
+  <div class="panel api-config-panel" id="apiConfigPanel" style="display:none;">
+    <div class="panel-body">
+      <div class="config-row">
+        <div class="field-group">
+          <label class="field-label">資料庫後端 API 網址</label>
+          <input type="text" id="apiBase" placeholder="例如：http://localhost:3000（留空則只存瀏覽器本機，不存資料庫）">
+        </div>
+        <button class="save-btn" id="saveApiBtn" type="button">儲存並測試連線</button>
+      </div>
+      <div id="apiStatus"></div>
+    </div>
+  </div>
 
   <div class="layout">
   <div class="panel main-panel">
@@ -341,6 +396,7 @@
       <span class="field-label">已上傳檔案（全部納入比對）</span>
       <button class="clear-all-btn" id="clearAllFilesBtn" style="display:none;">清空全部</button>
     </div>
+    <button class="clear-all-btn" id="syncAllBtn" style="display:none; width:100%; margin-bottom:10px; border-color:var(--steel); color:var(--steel);">同步未存入的檔案到資料庫</button>
     <div class="files-hint">會保留在這個瀏覽器裡，重新整理或關閉分頁不會遺失</div>
     <div class="files-list" id="filesList">
       <div class="files-empty" id="filesEmpty">尚未上傳任何檔案</div>
@@ -406,7 +462,7 @@
   }
 
   // ================= 背景執行緒（Web Worker）=================
-  // 解析 Excel、比對運算、IndexedDB 讀寫全部搬到背景執行緒做，
+  // 解析 Excel、比對運算、IndexedDB 讀寫、送資料庫 API 全部搬到背景執行緒做，
   // 主執行緒只處理畫面，不管上傳幾百幾千個檔案都不會讓分頁「沒有回應」。
   const WORKER_SRC = String.raw`
     importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
@@ -428,7 +484,6 @@
           const tx = e.target.transaction;
           if(!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE, { keyPath:'id' });
           if(!db.objectStoreNames.contains(DATA_STORE)) db.createObjectStore(DATA_STORE, { keyPath:'id' });
-          // 舊版只有單一 store，把舊資料搬進新的 meta/data 兩個 store，避免升級後資料消失
           if(db.objectStoreNames.contains(OLD_STORE_NAME)){
             const oldStore = tx.objectStore(OLD_STORE_NAME);
             const metaStore = tx.objectStore(META_STORE);
@@ -521,8 +576,6 @@
       } catch(err){ return []; }
     }
 
-    // store 裡的每個 entry：{ id, name, columns, model, rowCount, uploadedAt, rows }
-    // rows 剛上傳時就有；重開網頁還原時 rows 先是 null，要用到時才向 IndexedDB 拉
     const store = new Map();
 
     async function ensureRowsLoaded(entry){
@@ -549,8 +602,100 @@
       return best;
     }
 
+    // ---------- 資料庫欄位對照表（跟後端 server.js 的 FIELD_MAP 完全對齊，依 Excel 欄位位置）----------
+    const DB_COLUMN_MAP = [
+      ['A','poNo'],['B','referenceId'],['C','soNoContainerNo'],['D','vessel'],
+      ['E','itemModel'],['F','brand'],['G','palletNo'],['H','color'],
+      ['I','imei1'],['J','imei2'],['K','carton'],['L','sim'],
+      ['M','serialNo'],['N','macId'],['O','bluetoothId'],['P','batterySn'],
+      ['Q','buildNo'],['R','simPreinstalled'],['S','apnLoaded'],['T','enrolled'],['U','remark'],
+      ['V','accessories'],['W','housing'],['X','screen'],['Y','screenSupplier'],['Z','memoryComments'],
+      ['AA','vibratorSupplier'],['AB','lightProximitySensor'],['AC','byFactory'],['AD','assemblyLine'],
+      ['AE','manufacturedDate'],['AF','eid'],['AG','internalVersion'],['AH','oemUnlockCode'],['AI','skuItemNo'],
+      ['AJ','pcbaSn'],['AK','lcdSn'],['AL','mamboDeviceId'],['AM','bluetoothMac2'],['AN','iccid'],
+      ['AO','rfidEpcMemoryBrand'],['AP','rfidAndroidSn'],['AQ','batteryManufactureDate'],['AR','isim'],
+      ['AS','cameraIndicator'],['AT','wifi5g'],['AU','guestWifi'],['AV','btMacMainBoard'],['AW','btMacDaughterBoard'],
+      ['AX','rfidBrand'],['AY','rfidTid'],['AZ','pcbMainBoardSn'],['BA','blePcbSerialNo'],['BB','unitRemarks'],
+      ['BC','esimIccid'],['BD','imsi'],['BE','simUnlockCode'],
+    ];
+
+    function colLetterToIndex(letter){
+      let idx = 0;
+      for(let i = 0; i < letter.length; i++) idx = idx * 26 + (letter.toUpperCase().charCodeAt(i) - 64);
+      return idx - 1;
+    }
+
+    function buildDbRecords(sheet){
+      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      if(raw.length < 2) return [];
+      return raw.slice(1)
+        .map(rowArr => {
+          const rec = {};
+          DB_COLUMN_MAP.forEach(([letter, key]) => {
+            const idx = colLetterToIndex(letter);
+            const v = rowArr[idx];
+            rec[key] = (v === undefined || v === null) ? '' : String(v).trim();
+          });
+          return rec;
+        })
+        .filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
+    }
+
+    async function saveToDatabase(apiBase, sourceFileName, sheetName, model, dbRecords){
+      if(!apiBase || !dbRecords.length) return { attempted:false };
+      try{
+        const res = await fetch(apiBase.replace(/\/+$/, '') + '/api/files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceFileName, sheetName, model, rows: dbRecords }),
+        });
+        if(!res.ok){
+          const errData = await res.json().catch(() => ({}));
+          return { attempted:true, ok:false, error: errData.error || res.statusText };
+        }
+        const data = await res.json();
+        return { attempted:true, ok:true, rowCount: data.rowCount };
+      } catch(err){
+        return { attempted:true, ok:false, error: err.message };
+      }
+    }
+
+    // 標題文字 -> 資料庫欄位名稱的對照（重新同步已解析過的舊資料時用，
+    // 這種情況只剩下依標題文字為 key 的 rows，沒有原始 sheet 可以照欄位位置重讀）
+    const HEADER_NAME_MAP = {
+      'PO No.':'poNo', 'Reference ID':'referenceId', 'SO No./Container No.':'soNoContainerNo', 'Vessel':'vessel',
+      'Item Model':'itemModel', 'Brand':'brand', 'Pallet No.':'palletNo', 'Color':'color',
+      'IMEI1':'imei1', 'IMEI2':'imei2', 'Carton':'carton', 'SIM':'sim',
+      'Serial No.':'serialNo', 'MAC ID':'macId', 'Bluetooth ID':'bluetoothId', 'Battery SN':'batterySn',
+      'Build No.':'buildNo', 'SIM preinstalled':'simPreinstalled', 'APN Loaded':'apnLoaded', 'Enrolled':'enrolled', 'Remark':'remark',
+      'Accessories':'accessories', 'Housing':'housing', 'Screen':'screen', 'Screen supplier':'screenSupplier', 'Memory comments':'memoryComments',
+      'Vibrator supplier':'vibratorSupplier', 'Light and proximity sensor':'lightProximitySensor', 'By Factory':'byFactory', 'Assembly Line':'assemblyLine',
+      'Manufactured Date':'manufacturedDate', 'EID':'eid', 'Internal Version':'internalVersion', 'Oem Unlock Code':'oemUnlockCode', 'SKU - Item No.':'skuItemNo',
+      'PCBA SN':'pcbaSn', 'LCD SN':'lcdSn', 'Mambo Device ID':'mamboDeviceId', 'Bluetooth MAC 2':'bluetoothMac2', 'ICCID':'iccid',
+      'RFID EPC MEMORY BRAND':'rfidEpcMemoryBrand', 'RFID (Android SN)':'rfidAndroidSn', 'Battery Manufacture Date':'batteryManufactureDate', 'ISIM':'isim',
+      'Camera Indicator':'cameraIndicator', '5G Wifi':'wifi5g', 'Guest Wifi':'guestWifi',
+      'BT MAC \u2013 Main Board':'btMacMainBoard', 'BT MAC \u2013 Daughter Board':'btMacDaughterBoard',
+      'RFID Brand':'rfidBrand', 'RFID TID':'rfidTid', 'PCB Main Board Serial No.':'pcbMainBoardSn', 'BLE PCB Serial No.':'blePcbSerialNo',
+      'Unit Remarks':'unitRemarks', 'eSIM ICCID':'esimIccid', 'IMSI':'imsi', 'SIM Unlock Code':'simUnlockCode',
+    };
+
+    function buildDbRecordsFromParsedRows(rows){
+      return rows.map(row => {
+        const rec = {};
+        Object.keys(HEADER_NAME_MAP).forEach(header => {
+          const key = HEADER_NAME_MAP[header];
+          const v = row[header];
+          rec[key] = (v === undefined || v === null) ? '' : String(v).trim();
+        });
+        return rec;
+      }).filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
+    }
+
     function fileMetaOf(entry){
-      return { id: entry.id, name: entry.name, rowCount: entry.rowCount, columnCount: entry.columns.length, model: entry.model };
+      return {
+        id: entry.id, name: entry.name, rowCount: entry.rowCount, columnCount: entry.columns.length,
+        model: entry.model, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null,
+      };
     }
     function allColumns(){
       const seen = new Set(); const cols = [];
@@ -562,7 +707,6 @@
       const msg = e.data;
       try{
         if(msg.type === 'init'){
-          // 只讀輕量的 meta store，不管資料量多大都很快，畫面能立刻顯示已上傳的紀錄
           const metas = await dbLoadAllMeta();
           metas.sort((a,b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
           metas.forEach(m => store.set(m.id, { ...m, rows: null }));
@@ -572,20 +716,42 @@
           try{
             const data = new Uint8Array(msg.buffer);
             const wb = XLSX.read(data, { type:'array' });
-            const sheet = wb.Sheets[wb.SheetNames[0]];
+            const sheetName = wb.SheetNames[0];
+            const sheet = wb.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
             if(!rows.length) throw new Error('檔案內沒有可讀取的資料列');
             const columns = Object.keys(rows[0]);
             const model = detectItemModel(columns, rows);
             const id = Date.now() + '-' + Math.random().toString(36).slice(2,7) + '-' + store.size;
             const uploadedAt = new Date().toISOString();
-            const entry = { id, name: msg.name, columns, model, rowCount: rows.length, uploadedAt, rows };
+            const entry = { id, name: msg.name, sheetName, columns, model, rowCount: rows.length, uploadedAt, rows };
+
+            // 同時準備要送進資料庫的版本（依欄位位置對照，不是照標題文字）
+            const dbRecords = buildDbRecords(sheet);
+            const dbResult = await saveToDatabase(msg.apiBase, msg.name, sheetName, model, dbRecords);
+            entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
+            entry.dbError = dbResult.ok === false ? dbResult.error : null;
+
             store.set(id, entry);
-            dbPutMeta({ id, name: entry.name, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt });
+            dbPutMeta({ id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null });
             dbPutData({ id, rows: entry.rows });
-            self.postMessage({ type:'parse-ok', reqId: msg.reqId, file: fileMetaOf(entry), columns: allColumns() });
+            self.postMessage({ type:'parse-ok', reqId: msg.reqId, file: fileMetaOf(entry), columns: allColumns(), dbError: entry.dbError });
           } catch(err){
             self.postMessage({ type:'parse-err', reqId: msg.reqId, message: (err && err.message) || '無法解析檔案，請確認格式為 .xlsx / .xls / .csv' });
+          }
+
+        } else if(msg.type === 'sync-to-db'){
+          const entry = store.get(msg.id);
+          if(!entry){
+            self.postMessage({ type:'sync-to-db-err', reqId: msg.reqId, message: '找不到這個檔案的資料（可能已經被移除）' });
+          } else {
+            await ensureRowsLoaded(entry);
+            const dbRecords = buildDbRecordsFromParsedRows(entry.rows);
+            const dbResult = await saveToDatabase(msg.apiBase, entry.name, entry.sheetName || 'Report', entry.model, dbRecords);
+            entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
+            entry.dbError = dbResult.ok === false ? dbResult.error : null;
+            dbPutMeta({ id: entry.id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null });
+            self.postMessage({ type:'sync-to-db-ok', reqId: msg.reqId, file: fileMetaOf(entry) });
           }
 
         } else if(msg.type === 'remove'){
@@ -607,6 +773,15 @@
           dbClearBoth();
           self.postMessage({ type:'clear-all-ok', reqId: msg.reqId });
 
+        } else if(msg.type === 'test-api'){
+          try{
+            const res = await fetch(msg.apiBase.replace(/\/+$/, '') + '/api/health');
+            const data = await res.json();
+            self.postMessage({ type:'test-api-ok', reqId: msg.reqId, ok: !!data.ok, error: data.error || null });
+          } catch(err){
+            self.postMessage({ type:'test-api-ok', reqId: msg.reqId, ok:false, error: err.message });
+          }
+
         } else if(msg.type === 'compare'){
           const { compareCols, compareMode, ignoreCase, ignoreSpace } = msg;
           const normalize = (v) => {
@@ -616,7 +791,6 @@
             return s;
           };
 
-          // 比對需要用到完整的資料列，重開網頁後第一次比對時才會即時把還沒載入的檔案資料補齊
           await Promise.all([...store.values()].map(ensureRowsLoaded));
 
           const allRows = [];
@@ -671,11 +845,9 @@
         }
       } catch(err){
         self.postMessage({ type:'error', reqId: msg.reqId, message: (err && err.message) || '背景執行緒發生未預期的錯誤' });
-
       }
     };
-  
-`;
+  `;
 
   let worker = null;
   let reqCounter = 0;
@@ -710,13 +882,71 @@
     });
   }
 
+  // ================= 資料庫後端 API 網址設定 =================
+  const API_KEY = 'fieldComparatorApiBase';
+  const apiInput = document.getElementById('apiBase');
+  const apiStatus = document.getElementById('apiStatus');
+
+  function getApiBase(){
+    return (apiInput.value || '').trim().replace(/\/+$/, '');
+  }
+
+  const apiStatusDot = document.getElementById('apiStatusDot');
+  const apiStatusText = document.getElementById('apiStatusText');
+
+  function setStatusBar(state, text){
+    apiStatusDot.className = 'dot' + (state ? ' ' + state : '');
+    apiStatusText.textContent = text;
+  }
+
+  async function testApiConnection(){
+    const base = getApiBase();
+    if(!base){
+      apiStatus.innerHTML = '';
+      setStatusBar('', '資料庫連線：未設定');
+      return false;
+    }
+    apiStatus.innerHTML = '<span class="status-pill pending"><span class="dot"></span>連線測試中…</span>';
+    setStatusBar('pending', '資料庫連線：測試中…');
+    try{
+      const res = await workerCall({ type:'test-api', apiBase: base });
+      if(res.ok){
+        apiStatus.innerHTML = '<span class="status-pill ok"><span class="dot"></span>連線正常，之後上傳會同步存進資料庫</span>';
+        setStatusBar('ok', '資料庫連線成功');
+        return true;
+      }
+      throw new Error(res.error || '未知錯誤');
+    } catch(err){
+      apiStatus.innerHTML = `<span class="status-pill bad"><span class="dot"></span>連線失敗：${escapeHtml(err.message)}</span>`;
+      setStatusBar('bad', '資料庫連線失敗');
+      return false;
+    }
+  }
+
+  document.getElementById('saveApiBtn').addEventListener('click', async () => {
+    localStorage.setItem(API_KEY, apiInput.value.trim());
+    await testApiConnection();
+    renderFilesList();
+  });
+
+  const DEFAULT_API_BASE = 'http://localhost:3000';
+
+  (function initApiBase(){
+    const saved = localStorage.getItem(API_KEY);
+    if(saved){
+      apiInput.value = saved;
+    } else {
+      apiInput.value = DEFAULT_API_BASE;
+      localStorage.setItem(API_KEY, DEFAULT_API_BASE);
+    }
+  })();
+
   // ================= 主執行緒狀態（只存輕量的中繼資料，不存整份資料）=================
-  let fileMeta = []; // [{id,name,rowCount,columnCount,model}]
+  let fileMeta = [];
   let cachedColumns = [];
   const expandedGroups = new Set();
   const GROUP_INITIAL_SHOW = 50;
 
-  // ---------- compare-field rows (dynamic count) ----------
   const compareFieldsList = document.getElementById('compareFieldsList');
   const compareCountInput = document.getElementById('compareCount');
 
@@ -765,9 +995,8 @@
     syncCompareFields(v);
   });
 
-  syncCompareFields(1); // initial single row
+  syncCompareFields(1);
 
-  // ---------- upload slot ----------
   const slot = document.getElementById('slotS');
   const input = document.getElementById('fileS');
   const body = document.getElementById('slotSBody');
@@ -795,13 +1024,14 @@
     if(!files.length) return;
     const errors = [];
     const skipped = [];
+    const dbErrors = [];
     const total = files.length;
-    const knownNames = new Set(fileMeta.map(f => f.name)); // 已存在的檔名，包含這一批次裡剛加入的
+    const knownNames = new Set(fileMeta.map(f => f.name));
+    const apiBase = getApiBase();
 
     for(let i = 0; i < files.length; i++){
       const file = files[i];
 
-      // 偵測到同檔名的檔案已經上傳過（包含這一批次裡先前處理過的），直接跳過不重複解析
       if(knownNames.has(file.name)){
         skipped.push(file.name);
         continue;
@@ -811,17 +1041,17 @@
       slot.classList.add('loaded');
       body.innerHTML = `
         <div class="slot-file">正在解析中…（${i + 1} / ${total}）</div>
-        <div class="slot-meta">${escapeHtml(file.name)}</div>
+        <div class="slot-meta">${escapeHtml(file.name)}${apiBase ? '　同步存進資料庫中…' : ''}</div>
         <div class="upload-progress-track"><div class="upload-progress-fill" style="width:${pct}%"></div></div>`;
-      // 讓出主執行緒一個 tick，讓瀏覽器有機會重繪上面的進度文字
       await new Promise(resolve => setTimeout(resolve, 0));
 
       try{
         const buffer = await file.arrayBuffer();
-        const res = await workerCall({ type:'parse', buffer, name: file.name }, [buffer]);
+        const res = await workerCall({ type:'parse', buffer, name: file.name, apiBase }, [buffer]);
         fileMeta.push(res.file);
         cachedColumns = res.columns;
         knownNames.add(file.name);
+        if(res.dbError) dbErrors.push(`${file.name}：${res.dbError}`);
       } catch(err){
         errors.push(`${file.name}：${err.message}`);
       }
@@ -836,7 +1066,8 @@
     const messages = [];
     if(skipped.length) messages.push(`${skipped.length} 個檔案因檔名重複已跳過：` + skipped.slice(0, 5).join('、') + (skipped.length > 5 ? ` …等共 ${skipped.length} 個` : ''));
     if(errors.length) messages.push(`${errors.length} 個檔案解析失敗：` + errors.slice(0, 5).join('；') + (errors.length > 5 ? ` …等共 ${errors.length} 個` : ''));
-    if(messages.length) showSingleError(messages.join('　'));
+    if(dbErrors.length) messages.push(`${dbErrors.length} 個檔案存進資料庫失敗：` + dbErrors.slice(0, 5).join('；') + (dbErrors.length > 5 ? ` …等共 ${dbErrors.length} 個` : ''));
+    if(messages.length) showSingleError(messages.join('\n'));
   }
 
   slot.addEventListener('click', () => input.click());
@@ -846,16 +1077,25 @@
   ['dragleave','drop'].forEach(ev => slot.addEventListener(ev, (e)=>{ e.preventDefault(); slot.classList.remove('drag'); }));
   slot.addEventListener('drop', (e) => { handleFiles(e.dataTransfer.files); });
 
-  // ---------- 已上傳檔案清單（分組 + 分頁顯示，避免上千筆一次塞進 DOM）----------
+  function dbBadgeHtml(f){
+    if(f.dbStatus === 'ok') return '<div class="db-badge ok">已存進資料庫</div>';
+    if(f.dbStatus === 'bad') return `<div class="db-badge bad" title="${escapeHtml(f.dbError || '')}">資料庫存入失敗</div>`;
+    return '<div class="db-badge off">未同步資料庫</div>';
+  }
+
   function renderFilesList(){
     const list = document.getElementById('filesList');
     const clearAllBtn = document.getElementById('clearAllFilesBtn');
+    const syncAllBtn = document.getElementById('syncAllBtn');
     clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
+    const unsyncedCount = fileMeta.filter(f => f.dbStatus !== 'ok').length;
+    syncAllBtn.style.display = (getApiBase() && unsyncedCount) ? 'block' : 'none';
+    syncAllBtn.textContent = `同步未存入的檔案到資料庫（${unsyncedCount} 個）`;
     if(!fileMeta.length){
       list.innerHTML = '<div class="files-empty" id="filesEmpty">尚未上傳任何檔案</div>';
       return;
     }
-    const groups = new Map(); // model label -> entries[]
+    const groups = new Map();
     fileMeta.forEach(f => {
       const label = f.model || '未分類';
       if(!groups.has(label)) groups.set(label, []);
@@ -881,6 +1121,7 @@
           <div class="file-item-actions">
             <button class="file-json-btn" data-id="${f.id}">查看 JSON</button>
             <button class="file-remove-btn" data-id="${f.id}">移除</button>
+            ${dbBadgeHtml(f)}
           </div>
         </div>
       `).join('');
@@ -913,14 +1154,13 @@
     } catch(err){ showSingleError('移除檔案時發生錯誤：' + err.message); }
   }
 
-  // ---------- JSON 檢視 Modal（上傳後轉成的 JSON 內容，點按鈕才向背景執行緒取回）----------
-  const JSON_PREVIEW_LIMIT = 500; // 畫面上最多顯示這麼多列，避免超大檔案讓瀏覽器卡住
+  const JSON_PREVIEW_LIMIT = 500;
   const jsonModalOverlay = document.getElementById('jsonModalOverlay');
   const jsonModalTitle = document.getElementById('jsonModalTitle');
   const jsonModalMeta = document.getElementById('jsonModalMeta');
   const jsonModalBody = document.getElementById('jsonModalBody');
   const jsonModalDownload = document.getElementById('jsonModalDownload');
-  let currentJsonFile = null; // { name, rows } 給下載按鈕用
+  let currentJsonFile = null;
 
   async function openJsonModal(id){
     jsonModalTitle.textContent = '讀取中…';
@@ -964,10 +1204,9 @@
     URL.revokeObjectURL(url);
   });
 
-  // ---------- results rendering / search / export（分頁渲染，避免大量結果一次塞進 DOM）----------
   let resultsCtx = null;
   const PAGE_SIZE = 200;
-  let currentList = [];   // 目前搜尋篩選後的完整結果（分頁前）
+  let currentList = [];
   let currentPage = 1;
 
   function openResults(){ document.getElementById('results').classList.add('show'); }
@@ -1050,7 +1289,6 @@
     URL.revokeObjectURL(url);
   });
 
-  // ---------- duplicate finder（比對運算完全在背景執行緒跑）----------
   document.getElementById('runBtnS').addEventListener('click', async () => {
     clearSingleError();
     if(!fileMeta.length){ showSingleError('請先上傳至少一個檔案'); return; }
@@ -1125,10 +1363,9 @@
     }
   });
 
-  // ---------- 清空全部 ----------
   document.getElementById('clearAllFilesBtn').addEventListener('click', async () => {
     if(!fileMeta.length) return;
-    if(!confirm('確定要清空全部已上傳的檔案紀錄嗎？這個動作無法復原。')) return;
+    if(!confirm('確定要清空全部已上傳的檔案紀錄嗎？這個動作無法復原（不含資料庫裡的資料，只清瀏覽器本機）。')) return;
     try{
       await workerCall({ type:'clear-all' });
       fileMeta = [];
@@ -1144,9 +1381,39 @@
     } catch(err){ showSingleError('清空時發生錯誤：' + err.message); }
   });
 
-  // ---------- 頁面載入時，向背景執行緒要回上次保留的檔案清單 ----------
+  async function syncAllUnsyncedFiles(){
+    const apiBase = getApiBase();
+    if(!apiBase) return;
+    const targets = fileMeta.filter(f => f.dbStatus !== 'ok');
+    if(!targets.length) return;
+
+    const btn = document.getElementById('syncAllBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+
+    const dbErrors = [];
+    for(let i = 0; i < targets.length; i++){
+      btn.textContent = `自動同步中…（${i + 1} / ${targets.length}）`;
+      try{
+        const res = await workerCall({ type:'sync-to-db', id: targets[i].id, apiBase });
+        const idx = fileMeta.findIndex(f => f.id === res.file.id);
+        if(idx !== -1) fileMeta[idx] = res.file;
+        if(res.file.dbStatus === 'bad') dbErrors.push(`${res.file.name}：${res.file.dbError}`);
+      } catch(err){
+        dbErrors.push(`${targets[i].name}：${err.message}`);
+      }
+      renderFilesList();
+    }
+
+    btn.disabled = false;
+    btn.textContent = original;
+    if(dbErrors.length) showSingleError(`${dbErrors.length} 個檔案同步失敗：\n` + dbErrors.join('\n'));
+    else clearSingleError();
+  }
+
+  document.getElementById('syncAllBtn').addEventListener('click', syncAllUnsyncedFiles);
+
   (async function init(){
-    // 先給一個簡短提示，即使現在讀取已經很快，慢速裝置或大量紀錄時使用者也知道系統正在動作
     document.getElementById('filesList').innerHTML = '<div class="files-empty">正在讀取先前的紀錄…</div>';
     try{
       const res = await workerCall({ type:'init' });
@@ -1159,6 +1426,11 @@
     } catch(err){
       showSingleError('初始化背景執行緒失敗，請確認瀏覽器支援 Web Worker：' + err.message);
       renderFilesList();
+    }
+    if(apiInput.value){
+      const connected = await testApiConnection();
+      renderFilesList();
+      if(connected) syncAllUnsyncedFiles();
     }
   })();
 </script>
