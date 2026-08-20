@@ -1197,7 +1197,7 @@
   compareCountInput.addEventListener('change', () => {
     let v = parseInt(compareCountInput.value, 10);
     if(isNaN(v) || v < 1) v = 1;
-    if(v > 8) v = 8;
+    if(v > 999) ;
     compareCountInput.value = v;
     syncCompareFields(v);
   });
