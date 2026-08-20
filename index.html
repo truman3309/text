@@ -679,9 +679,33 @@
         .filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
 
-    async function saveToDatabase(sourceFileName, sheetName, model, dbRecords){
+    // 把原始 Excel 檔案本身上傳到 Supabase Storage（跟資料表是分開的儲存空間）
+    async function uploadFileToStorage(fileId, fileName, bytes){
+      const path = fileId + '/' + encodeURIComponent(fileName);
+      try{
+        const res = await fetch(SUPABASE_URL + '/storage/v1/object/excel-files/' + path, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Content-Type': 'application/octet-stream',
+            'x-upsert': 'true',
+          },
+          body: bytes,
+        });
+        if(!res.ok){
+          const errData = await res.json().catch(() => ({}));
+          return { ok:false, error: errData.message || res.statusText };
+        }
+        return { ok:true, path };
+      } catch(err){
+        return { ok:false, error: err.message };
+      }
+    }
+
+    async function saveToDatabase(sourceFileName, sheetName, model, dbRecords, storagePath, fileId){
       if(!dbRecords.length) return { attempted:false };
-      const fileId = genDbId();
+      fileId = fileId || genDbId();
       try{
         // 1) 先在 shipment_files 新增一筆代表這次上傳
         const fileRes = await fetch(SUPABASE_URL + '/rest/v1/shipment_files', {
@@ -689,7 +713,7 @@
           headers: supabaseHeaders({ 'Prefer': 'return=minimal' }),
           body: JSON.stringify([{
             id: fileId, source_file_name: sourceFileName, sheet_name: sheetName,
-            model: model || null, row_count: dbRecords.length,
+            model: model || null, row_count: dbRecords.length, storage_path: storagePath || null,
           }]),
         });
         if(!fileRes.ok){
@@ -759,6 +783,7 @@
       return {
         id: entry.id, name: entry.name, rowCount: entry.rowCount, columnCount: entry.columns.length,
         model: entry.model, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null,
+        storagePath: entry.storagePath || null,
       };
     }
     function allColumns(){
@@ -790,13 +815,19 @@
             const uploadedAt = new Date().toISOString();
             const entry = { id, name: msg.name, sheetName, columns, model, rowCount: rows.length, uploadedAt, rows };
 
+            // 先把原始 Excel 檔案本身上傳到 Supabase Storage，跟資料庫用同一個 id 串起來
+            const dbFileId = genDbId();
+            const uploadResult = await uploadFileToStorage(dbFileId, msg.name, data);
+            entry.storagePath = uploadResult.ok ? uploadResult.path : null;
+            entry.storageError = uploadResult.ok ? null : uploadResult.error;
+
             const dbRecords = buildDbRecords(sheet);
-            const dbResult = await saveToDatabase(msg.name, sheetName, model, dbRecords);
+            const dbResult = await saveToDatabase(msg.name, sheetName, model, dbRecords, entry.storagePath, dbFileId);
             entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
             entry.dbError = dbResult.ok === false ? dbResult.error : null;
 
             store.set(id, entry);
-            dbPutMeta({ id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null });
+            dbPutMeta({ id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null });
             dbPutData({ id, rows: entry.rows });
             self.postMessage({ type:'parse-ok', reqId: msg.reqId, file: fileMetaOf(entry), columns: allColumns(), dbError: entry.dbError });
           } catch(err){
