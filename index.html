@@ -112,12 +112,15 @@
   .file-group-label{
     font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
     color:var(--steel); font-weight:600; margin:10px 0 2px; padding-bottom:5px; border-bottom:1px solid var(--border);
-    display:flex; justify-content:space-between; align-items:center;
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none;
   }
+  .file-group-label:hover{ color:var(--steel-dark); }
+  .group-label-text{ display:flex; align-items:center; gap:6px; }
+  .group-arrow{ font-size:9px; width:9px; display:inline-block; color:var(--muted); }
   .file-group-label:first-child{ margin-top:0; }
   .file-group-count{
     font-weight:500; color:var(--muted); background:var(--steel-tint); border-radius:2px;
-    padding:1px 6px; font-size:10px;
+    padding:1px 6px; font-size:10px; white-space:nowrap; flex-shrink:0;
   }
   .file-item{
     border:1px solid var(--border); border-left:3px solid var(--success); border-radius:2px;
@@ -334,18 +337,6 @@
   <div class="api-status-bar" id="apiStatusBar">
     <span class="dot" id="apiStatusDot"></span>
     <span id="apiStatusText">資料庫連線設定</span>
-  </div>
-  <div class="panel api-config-panel" id="apiConfigPanel" style="display:none;">
-    <div class="panel-body">
-      <div class="config-row">
-        <div class="field-group">
-          <label class="field-label">資料庫後端 API 網址</label>
-          <input type="text" id="apiBase" placeholder="例如：http://localhost:3000（留空則只存瀏覽器本機，不存資料庫）">
-        </div>
-        <button class="save-btn" id="saveApiBtn" type="button">儲存並測試連線</button>
-      </div>
-      <div id="apiStatus"></div>
-    </div>
   </div>
 
   <div class="layout">
@@ -619,6 +610,45 @@
       ['BC','esimIccid'],['BD','imsi'],['BE','simUnlockCode'],
     ];
 
+    // ---------- 直接連 Supabase（REST API / PostgREST 語法），不再經過中間的後端伺服器 ----------
+    const SUPABASE_URL = 'https://brhjfveertlypgrwkqfq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyaGpmdmVlcnRseXBncndrcWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxODI5NTUsImV4cCI6MjEwMjc1ODk1NX0.8fQJ-kiIHV8ePjDTjfby7fHmthqWekD1Sf3TtzfbGwo';
+
+    function supabaseHeaders(extra){
+      return Object.assign({
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      }, extra || {});
+    }
+
+    function genDbId(){
+      return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    // camelCase（前端解析用的 key）-> snake_case（Supabase 資料表實際欄位名稱）
+    const CAMEL_TO_SNAKE = {
+      poNo:'po_no', referenceId:'reference_id', soNoContainerNo:'so_no_container_no', vessel:'vessel',
+      itemModel:'item_model', brand:'brand', palletNo:'pallet_no', color:'color',
+      imei1:'imei1', imei2:'imei2', carton:'carton', sim:'sim',
+      serialNo:'serial_no', macId:'mac_id', bluetoothId:'bluetooth_id', batterySn:'battery_sn',
+      buildNo:'build_no', simPreinstalled:'sim_preinstalled', apnLoaded:'apn_loaded', enrolled:'enrolled', remark:'remark',
+      accessories:'accessories', housing:'housing', screen:'screen', screenSupplier:'screen_supplier', memoryComments:'memory_comments',
+      vibratorSupplier:'vibrator_supplier', lightProximitySensor:'light_proximity_sensor', byFactory:'by_factory', assemblyLine:'assembly_line',
+      manufacturedDate:'manufactured_date', eid:'eid', internalVersion:'internal_version', oemUnlockCode:'oem_unlock_code', skuItemNo:'sku_item_no',
+      pcbaSn:'pcba_sn', lcdSn:'lcd_sn', mamboDeviceId:'mambo_device_id', bluetoothMac2:'bluetooth_mac_2', iccid:'iccid',
+      rfidEpcMemoryBrand:'rfid_epc_memory_brand', rfidAndroidSn:'rfid_android_sn', batteryManufactureDate:'battery_manufacture_date', isim:'isim',
+      cameraIndicator:'camera_indicator', wifi5g:'wifi_5g', guestWifi:'guest_wifi', btMacMainBoard:'bt_mac_main_board', btMacDaughterBoard:'bt_mac_daughter_board',
+      rfidBrand:'rfid_brand', rfidTid:'rfid_tid', pcbMainBoardSn:'pcb_main_board_sn', blePcbSerialNo:'ble_pcb_serial_no', unitRemarks:'unit_remarks',
+      esimIccid:'esim_iccid', imsi:'imsi', simUnlockCode:'sim_unlock_code',
+    };
+
+    function toSnakeCaseFields(rec){
+      const out = {};
+      Object.keys(CAMEL_TO_SNAKE).forEach(camel => { out[CAMEL_TO_SNAKE[camel]] = rec[camel] || null; });
+      return out;
+    }
+
     function colLetterToIndex(letter){
       let idx = 0;
       for(let i = 0; i < letter.length; i++) idx = idx * 26 + (letter.toUpperCase().charCodeAt(i) - 64);
@@ -641,20 +671,46 @@
         .filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
 
-    async function saveToDatabase(apiBase, sourceFileName, sheetName, model, dbRecords){
-      if(!apiBase || !dbRecords.length) return { attempted:false };
+    async function saveToDatabase(sourceFileName, sheetName, model, dbRecords){
+      if(!dbRecords.length) return { attempted:false };
+      const fileId = genDbId();
       try{
-        const res = await fetch(apiBase.replace(/\/+$/, '') + '/api/files', {
+        // 1) 先在 shipment_files 新增一筆代表這次上傳
+        const fileRes = await fetch(SUPABASE_URL + '/rest/v1/shipment_files', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sourceFileName, sheetName, model, rows: dbRecords }),
+          headers: supabaseHeaders({ 'Prefer': 'return=minimal' }),
+          body: JSON.stringify([{
+            id: fileId, source_file_name: sourceFileName, sheet_name: sheetName,
+            model: model || null, row_count: dbRecords.length,
+          }]),
         });
-        if(!res.ok){
-          const errData = await res.json().catch(() => ({}));
-          return { attempted:true, ok:false, error: errData.error || res.statusText };
+        if(!fileRes.ok){
+          const errData = await fileRes.json().catch(() => ({}));
+          return { attempted:true, ok:false, error: errData.message || fileRes.statusText };
         }
-        const data = await res.json();
-        return { attempted:true, ok:true, rowCount: data.rowCount };
+
+        // 2) 分批把資料列寫進 shipment_records（Supabase 一次 insert 可以送整個陣列）
+        const BATCH_SIZE = 500;
+        for(let i = 0; i < dbRecords.length; i += BATCH_SIZE){
+          const batch = dbRecords.slice(i, i + BATCH_SIZE).map((rec, idx) => Object.assign(
+            { file_id: fileId, row_index: i + idx, full_row: rec },
+            toSnakeCaseFields(rec)
+          ));
+          const recRes = await fetch(SUPABASE_URL + '/rest/v1/shipment_records', {
+            method: 'POST',
+            headers: supabaseHeaders({ 'Prefer': 'return=minimal' }),
+            body: JSON.stringify(batch),
+          });
+          if(!recRes.ok){
+            const errData = await recRes.json().catch(() => ({}));
+            // 中途失敗時把剛新增的 file 清掉（設定了 ON DELETE CASCADE，記錄會一起清），避免留下半份資料
+            await fetch(SUPABASE_URL + '/rest/v1/shipment_files?id=eq.' + fileId, {
+              method: 'DELETE', headers: supabaseHeaders(),
+            }).catch(() => {});
+            return { attempted:true, ok:false, error: errData.message || recRes.statusText };
+          }
+        }
+        return { attempted:true, ok:true, rowCount: dbRecords.length };
       } catch(err){
         return { attempted:true, ok:false, error: err.message };
       }
@@ -727,7 +783,7 @@
             const entry = { id, name: msg.name, sheetName, columns, model, rowCount: rows.length, uploadedAt, rows };
 
             const dbRecords = buildDbRecords(sheet);
-            const dbResult = await saveToDatabase(msg.apiBase, msg.name, sheetName, model, dbRecords);
+            const dbResult = await saveToDatabase(msg.name, sheetName, model, dbRecords);
             entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
             entry.dbError = dbResult.ok === false ? dbResult.error : null;
 
@@ -746,7 +802,7 @@
           } else {
             await ensureRowsLoaded(entry);
             const dbRecords = buildDbRecordsFromParsedRows(entry.rows);
-            const dbResult = await saveToDatabase(msg.apiBase, entry.name, entry.sheetName || 'Report', entry.model, dbRecords);
+            const dbResult = await saveToDatabase(entry.name, entry.sheetName || 'Report', entry.model, dbRecords);
             entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
             entry.dbError = dbResult.ok === false ? dbResult.error : null;
             dbPutMeta({ id: entry.id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null });
@@ -774,9 +830,15 @@
 
         } else if(msg.type === 'test-api'){
           try{
-            const res = await fetch(msg.apiBase.replace(/\/+$/, '') + '/api/health');
-            const data = await res.json();
-            self.postMessage({ type:'test-api-ok', reqId: msg.reqId, ok: !!data.ok, error: data.error || null });
+            const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?select=id&limit=1', {
+              headers: supabaseHeaders(),
+            });
+            if(res.ok){
+              self.postMessage({ type:'test-api-ok', reqId: msg.reqId, ok:true, error:null });
+            } else {
+              const errData = await res.json().catch(() => ({}));
+              self.postMessage({ type:'test-api-ok', reqId: msg.reqId, ok:false, error: errData.message || res.statusText });
+            }
           } catch(err){
             self.postMessage({ type:'test-api-ok', reqId: msg.reqId, ok:false, error: err.message });
           }
@@ -881,15 +943,7 @@
     });
   }
 
-  // ================= 資料庫後端 API 網址設定 =================
-  const API_KEY = 'fieldComparatorApiBase';
-  const apiInput = document.getElementById('apiBase');
-  const apiStatus = document.getElementById('apiStatus');
-
-  function getApiBase(){
-    return (apiInput.value || '').trim().replace(/\/+$/, '');
-  }
-
+  // ================= 資料庫連線狀態（直接連 Supabase，網址跟金鑰寫在 Worker 裡）=================
   const apiStatusDot = document.getElementById('apiStatusDot');
   const apiStatusText = document.getElementById('apiStatusText');
 
@@ -899,53 +953,25 @@
   }
 
   async function testApiConnection(){
-    const base = getApiBase();
-    if(!base){
-      apiStatus.innerHTML = '';
-      setStatusBar('', '資料庫連線：未設定');
-      return false;
-    }
-    apiStatus.innerHTML = '<span class="status-pill pending"><span class="dot"></span>連線測試中…</span>';
     setStatusBar('pending', '資料庫連線：測試中…');
     try{
-      const res = await workerCall({ type:'test-api', apiBase: base });
+      const res = await workerCall({ type:'test-api' });
       if(res.ok){
-        apiStatus.innerHTML = '<span class="status-pill ok"><span class="dot"></span>連線正常，之後上傳會同步存進資料庫</span>';
         setStatusBar('ok', '資料庫連線成功');
         return true;
       }
       throw new Error(res.error || '未知錯誤');
     } catch(err){
-      apiStatus.innerHTML = `<span class="status-pill bad"><span class="dot"></span>連線失敗：${escapeHtml(err.message)}</span>`;
-      setStatusBar('bad', '資料庫連線失敗');
+      setStatusBar('bad', '資料庫連線失敗：' + err.message);
       return false;
     }
   }
-
-  document.getElementById('saveApiBtn').addEventListener('click', async () => {
-    localStorage.setItem(API_KEY, apiInput.value.trim());
-    await testApiConnection();
-    renderFilesList();
-  });
-
-  // ★★★ 修正重點：改成 Vercel 專案的正式穩定網域（text-tan.vercel.app），
-  // 不是每次部署都會變的那種帶亂碼的網址 ★★★
-  const DEFAULT_API_BASE = 'https://brhjfveertlypgrwkqfq.supabase.co/rest/v1/todos?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyaGpmdmVlcnRseXBncndrcWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxODI5NTUsImV4cCI6MjEwMjc1ODk1NX0.8fQJ-kiIHV8ePjDTjfby7fHmthqWekD1Sf3TtzfbGwo';
-
-  (function initApiBase(){
-    const saved = localStorage.getItem(API_KEY);
-    if(saved){
-      apiInput.value = saved;
-    } else {
-      apiInput.value = DEFAULT_API_BASE;
-      localStorage.setItem(API_KEY, DEFAULT_API_BASE);
-    }
-  })();
 
   // ================= 主執行緒狀態（只存輕量的中繼資料，不存整份資料）=================
   let fileMeta = [];
   let cachedColumns = [];
   const expandedGroups = new Set();
+  const collapsedGroups = new Set();
   const GROUP_INITIAL_SHOW = 50;
 
   const compareFieldsList = document.getElementById('compareFieldsList');
@@ -1028,7 +1054,6 @@
     const dbErrors = [];
     const total = files.length;
     const knownNames = new Set(fileMeta.map(f => f.name));
-    const apiBase = getApiBase();
 
     for(let i = 0; i < files.length; i++){
       const file = files[i];
@@ -1042,13 +1067,13 @@
       slot.classList.add('loaded');
       body.innerHTML = `
         <div class="slot-file">正在解析中…（${i + 1} / ${total}）</div>
-        <div class="slot-meta">${escapeHtml(file.name)}${apiBase ? '　同步存進資料庫中…' : ''}</div>
+        <div class="slot-meta">${escapeHtml(file.name)}　同步存進資料庫中…</div>
         <div class="upload-progress-track"><div class="upload-progress-fill" style="width:${pct}%"></div></div>`;
       await new Promise(resolve => setTimeout(resolve, 0));
 
       try{
         const buffer = await file.arrayBuffer();
-        const res = await workerCall({ type:'parse', buffer, name: file.name, apiBase }, [buffer]);
+        const res = await workerCall({ type:'parse', buffer, name: file.name }, [buffer]);
         fileMeta.push(res.file);
         cachedColumns = res.columns;
         knownNames.add(file.name);
@@ -1090,7 +1115,7 @@
     const syncAllBtn = document.getElementById('syncAllBtn');
     clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
     const unsyncedCount = fileMeta.filter(f => f.dbStatus !== 'ok').length;
-    syncAllBtn.style.display = (getApiBase() && unsyncedCount) ? 'block' : 'none';
+    syncAllBtn.style.display = unsyncedCount ? 'block' : 'none';
     syncAllBtn.textContent = `同步未存入的檔案到資料庫（${unsyncedCount} 個）`;
     if(!fileMeta.length){
       list.innerHTML = '<div class="files-empty" id="filesEmpty">尚未上傳任何檔案</div>';
@@ -1110,35 +1135,47 @@
 
     let html = '';
     groupEntries.forEach(([label, files]) => {
+      const isCollapsed = collapsedGroups.has(label);
       const isExpanded = expandedGroups.has(label);
       const visibleFiles = isExpanded ? files : files.slice(0, GROUP_INITIAL_SHOW);
-      html += `<div class="file-group-label">${escapeHtml(label)}<span class="file-group-count">${files.length}</span></div>`;
-      html += visibleFiles.map(f => `
-        <div class="file-item" data-id="${f.id}">
-          <div class="file-item-main">
-            <div class="file-item-name">${escapeHtml(f.name)}</div>
-            <div class="file-item-meta">${f.rowCount} 列・${f.columnCount} 欄</div>
+      const totalRowsInGroup = files.reduce((sum, f) => sum + f.rowCount, 0);
+      html += `<div class="file-group-label" data-collapse-label="${escapeHtml(label)}"><span class="group-label-text"><span class="group-arrow">${isCollapsed ? '▸' : '▾'}</span>${escapeHtml(label)}</span><span class="file-group-count">${files.length} 個・${totalRowsInGroup} 列</span></div>`;
+      if(!isCollapsed){
+        html += visibleFiles.map(f => `
+          <div class="file-item" data-id="${f.id}">
+            <div class="file-item-main">
+              <div class="file-item-name">${escapeHtml(f.name)}</div>
+              <div class="file-item-meta">${f.rowCount} 列・${f.columnCount} 欄</div>
+            </div>
+            <div class="file-item-actions">
+              <button class="file-json-btn" data-id="${f.id}">查看 JSON</button>
+              <button class="file-remove-btn" data-id="${f.id}">移除</button>
+              ${dbBadgeHtml(f)}
+            </div>
           </div>
-          <div class="file-item-actions">
-            <button class="file-json-btn" data-id="${f.id}">查看 JSON</button>
-            <button class="file-remove-btn" data-id="${f.id}">移除</button>
-            ${dbBadgeHtml(f)}
-          </div>
-        </div>
-      `).join('');
-      if(!isExpanded && files.length > GROUP_INITIAL_SHOW){
-        html += `<button class="show-more-btn" data-label="${escapeHtml(label)}">顯示全部（還有 ${files.length - GROUP_INITIAL_SHOW} 筆）</button>`;
+        `).join('');
+        if(!isExpanded && files.length > GROUP_INITIAL_SHOW){
+          html += `<button class="show-more-btn" data-label="${escapeHtml(label)}">顯示全部（還有 ${files.length - GROUP_INITIAL_SHOW} 筆）</button>`;
+        }
       }
     });
     list.innerHTML = html;
+    list.querySelectorAll('.file-group-label').forEach(el => {
+      el.addEventListener('click', () => {
+        const label = el.dataset.collapseLabel;
+        if(collapsedGroups.has(label)) collapsedGroups.delete(label);
+        else collapsedGroups.add(label);
+        renderFilesList();
+      });
+    });
     list.querySelectorAll('.file-json-btn').forEach(btn => {
-      btn.addEventListener('click', () => openJsonModal(btn.dataset.id));
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openJsonModal(btn.dataset.id); });
     });
     list.querySelectorAll('.file-remove-btn').forEach(btn => {
-      btn.addEventListener('click', () => removeFromHistory(btn.dataset.id));
+      btn.addEventListener('click', (e) => { e.stopPropagation(); removeFromHistory(btn.dataset.id); });
     });
     list.querySelectorAll('.show-more-btn').forEach(btn => {
-      btn.addEventListener('click', () => { expandedGroups.add(btn.dataset.label); renderFilesList(); });
+      btn.addEventListener('click', (e) => { e.stopPropagation(); expandedGroups.add(btn.dataset.label); renderFilesList(); });
     });
   }
 
@@ -1372,6 +1409,7 @@
       fileMeta = [];
       cachedColumns = [];
       expandedGroups.clear();
+      collapsedGroups.clear();
       refreshCompareFieldOptions();
       refreshMainSlotDisplay();
       compareCountInput.value = 1;
@@ -1383,8 +1421,6 @@
   });
 
   async function syncAllUnsyncedFiles(){
-    const apiBase = getApiBase();
-    if(!apiBase) return;
     const targets = fileMeta.filter(f => f.dbStatus !== 'ok');
     if(!targets.length) return;
 
@@ -1396,7 +1432,7 @@
     for(let i = 0; i < targets.length; i++){
       btn.textContent = `自動同步中…（${i + 1} / ${targets.length}）`;
       try{
-        const res = await workerCall({ type:'sync-to-db', id: targets[i].id, apiBase });
+        const res = await workerCall({ type:'sync-to-db', id: targets[i].id });
         const idx = fileMeta.findIndex(f => f.id === res.file.id);
         if(idx !== -1) fileMeta[idx] = res.file;
         if(res.file.dbStatus === 'bad') dbErrors.push(`${res.file.name}：${res.file.dbError}`);
@@ -1428,11 +1464,9 @@
       showSingleError('初始化背景執行緒失敗，請確認瀏覽器支援 Web Worker：' + err.message);
       renderFilesList();
     }
-    if(apiInput.value){
-      const connected = await testApiConnection();
-      renderFilesList();
-      if(connected) syncAllUnsyncedFiles();
-    }
+    const connected = await testApiConnection();
+    renderFilesList();
+    if(connected) syncAllUnsyncedFiles();
   })();
 </script>
 </body>
