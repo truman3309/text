@@ -703,6 +703,35 @@
       }
     }
 
+    // 從 Supabase 刪除這個檔案（shipment_files 那筆刪掉，靠 ON DELETE CASCADE 連動刪掉底下所有 shipment_records），
+    // 以及 Storage 裡的原始檔案
+    async function deleteFromDatabase(dbFileId, storagePath){
+      const errors = [];
+      if(dbFileId){
+        try{
+          const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?id=eq.' + encodeURIComponent(dbFileId), {
+            method: 'DELETE', headers: supabaseHeaders(),
+          });
+          if(!res.ok){
+            const errData = await res.json().catch(() => ({}));
+            errors.push('資料表：' + (errData.message || res.statusText));
+          }
+        } catch(err){ errors.push('資料表：' + err.message); }
+      }
+      if(storagePath){
+        try{
+          const res = await fetch(SUPABASE_URL + '/storage/v1/object/excel-files/' + storagePath, {
+            method: 'DELETE', headers: supabaseHeaders(),
+          });
+          if(!res.ok){
+            const errData = await res.json().catch(() => ({}));
+            errors.push('Storage：' + (errData.message || res.statusText));
+          }
+        } catch(err){ errors.push('Storage：' + err.message); }
+      }
+      return errors.length ? { ok:false, error: errors.join('；') } : { ok:true };
+    }
+
     async function saveToDatabase(sourceFileName, sheetName, model, dbRecords, storagePath, fileId){
       if(!dbRecords.length) return { attempted:false };
       fileId = fileId || genDbId();
@@ -742,7 +771,7 @@
             return { attempted:true, ok:false, error: errData.message || recRes.statusText };
           }
         }
-        return { attempted:true, ok:true, rowCount: dbRecords.length };
+        return { attempted:true, ok:true, rowCount: dbRecords.length, fileId };
       } catch(err){
         return { attempted:true, ok:false, error: err.message };
       }
@@ -783,7 +812,7 @@
       return {
         id: entry.id, name: entry.name, rowCount: entry.rowCount, columnCount: entry.columns.length,
         model: entry.model, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null,
-        storagePath: entry.storagePath || null,
+        storagePath: entry.storagePath || null, dbFileId: entry.dbFileId || null,
       };
     }
     function allColumns(){
@@ -825,9 +854,10 @@
             const dbResult = await saveToDatabase(msg.name, sheetName, model, dbRecords, entry.storagePath, dbFileId);
             entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
             entry.dbError = dbResult.ok === false ? dbResult.error : null;
+            entry.dbFileId = dbResult.ok ? dbResult.fileId : null;
 
             store.set(id, entry);
-            dbPutMeta({ id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null });
+            dbPutMeta({ id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null, dbFileId: entry.dbFileId || null });
             dbPutData({ id, rows: entry.rows });
             self.postMessage({ type:'parse-ok', reqId: msg.reqId, file: fileMetaOf(entry), columns: allColumns(), dbError: entry.dbError });
           } catch(err){
@@ -844,14 +874,21 @@
             const dbResult = await saveToDatabase(entry.name, entry.sheetName || 'Report', entry.model, dbRecords);
             entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
             entry.dbError = dbResult.ok === false ? dbResult.error : null;
-            dbPutMeta({ id: entry.id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null });
+            entry.dbFileId = dbResult.ok ? dbResult.fileId : (entry.dbFileId || null);
+            dbPutMeta({ id: entry.id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null, dbFileId: entry.dbFileId || null });
             self.postMessage({ type:'sync-to-db-ok', reqId: msg.reqId, file: fileMetaOf(entry) });
           }
 
         } else if(msg.type === 'remove'){
+          const entry = store.get(msg.id);
+          let dbDeleteError = null;
+          if(entry && entry.dbFileId){
+            const delResult = await deleteFromDatabase(entry.dbFileId, entry.storagePath);
+            if(!delResult.ok) dbDeleteError = delResult.error;
+          }
           store.delete(msg.id);
           dbDeleteBoth(msg.id);
-          self.postMessage({ type:'remove-ok', reqId: msg.reqId, columns: allColumns() });
+          self.postMessage({ type:'remove-ok', reqId: msg.reqId, columns: allColumns(), dbDeleteError });
 
         } else if(msg.type === 'get-file-data'){
           const entry = store.get(msg.id);
@@ -1228,6 +1265,8 @@
       document.getElementById('results').classList.remove('show');
       checkReady();
       renderFilesList();
+      if(res.dbDeleteError) showSingleError('已從瀏覽器移除，但資料庫刪除失敗：' + res.dbDeleteError);
+      else clearSingleError();
     } catch(err){ showSingleError('移除檔案時發生錯誤：' + err.message); }
   }
 
