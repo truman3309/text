@@ -649,6 +649,14 @@
       return out;
     }
 
+    // 把一列資料依照 Excel 欄位順序（A~BE）組成一行 CSV 文字，取代原本存 JSON 物件的做法
+    function toCsvRow(rec){
+      return DB_COLUMN_MAP.map(([, key]) => {
+        const s = String(rec[key] ?? '');
+        return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }
+
     function colLetterToIndex(letter){
       let idx = 0;
       for(let i = 0; i < letter.length; i++) idx = idx * 26 + (letter.toUpperCase().charCodeAt(i) - 64);
@@ -693,7 +701,7 @@
         const BATCH_SIZE = 500;
         for(let i = 0; i < dbRecords.length; i += BATCH_SIZE){
           const batch = dbRecords.slice(i, i + BATCH_SIZE).map((rec, idx) => Object.assign(
-            { file_id: fileId, row_index: i + idx, full_row: rec },
+            { file_id: fileId, row_index: i + idx, full_row: toCsvRow(rec) },
             toSnakeCaseFields(rec)
           ));
           const recRes = await fetch(SUPABASE_URL + '/rest/v1/shipment_records', {
