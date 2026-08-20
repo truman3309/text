@@ -928,9 +928,9 @@
     renderFilesList();
   });
 
-  // ★★★ 修正重點：這裡原本被誤填成 Supabase 的網址，改成你的 Vercel 部署網址 ★★★
-  // 之後如果你的 Vercel 網址換了（例如換成自訂網域），這裡也要跟著改
-  const DEFAULT_API_BASE = 'https://text1-19wdgas97-truman3309-5745s-projects.vercel.app';
+  // ★★★ 修正重點：改成 Vercel 專案的正式穩定網域（text-tan.vercel.app），
+  // 不是每次部署都會變的那種帶亂碼的網址 ★★★
+  const DEFAULT_API_BASE = 'https://text-tan.vercel.app';
 
   (function initApiBase(){
     const saved = localStorage.getItem(API_KEY);
