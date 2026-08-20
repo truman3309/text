@@ -726,7 +726,6 @@
             const uploadedAt = new Date().toISOString();
             const entry = { id, name: msg.name, sheetName, columns, model, rowCount: rows.length, uploadedAt, rows };
 
-            // 同時準備要送進資料庫的版本（依欄位位置對照，不是照標題文字）
             const dbRecords = buildDbRecords(sheet);
             const dbResult = await saveToDatabase(msg.apiBase, msg.name, sheetName, model, dbRecords);
             entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
@@ -929,7 +928,9 @@
     renderFilesList();
   });
 
-  const DEFAULT_API_BASE = 'text-3xbgsvgd7-truman3309-5745s-projects.vercel.app';
+  // ★★★ 修正重點：這裡原本被誤填成 Supabase 的網址，改成你的 Vercel 部署網址 ★★★
+  // 之後如果你的 Vercel 網址換了（例如換成自訂網域），這裡也要跟著改
+  const DEFAULT_API_BASE = 'https://text1-19wdgas97-truman3309-5745s-projects.vercel.app';
 
   (function initApiBase(){
     const saved = localStorage.getItem(API_KEY);
