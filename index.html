@@ -705,7 +705,7 @@
 
     // 從 Supabase 刪除這個檔案（shipment_files 那筆刪掉，靠 ON DELETE CASCADE 連動刪掉底下所有 shipment_records），
     // 以及 Storage 裡的原始檔案
-    async function deleteFromDatabase(dbFileId, storagePath){
+    async function deleteFromDatabase(dbFileId, storagePath, sourceFileName){
       const errors = [];
       if(dbFileId){
         try{
@@ -717,6 +717,17 @@
             errors.push('資料表：' + (errData.message || res.statusText));
           }
         } catch(err){ errors.push('資料表：' + err.message); }
+      } else if(sourceFileName){
+        // 沒有記錄資料庫 id 的舊檔案（這個功能上線前就上傳過的），改用檔名去資料庫比對刪除
+        try{
+          const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?source_file_name=eq.' + encodeURIComponent(sourceFileName), {
+            method: 'DELETE', headers: supabaseHeaders(),
+          });
+          if(!res.ok){
+            const errData = await res.json().catch(() => ({}));
+            errors.push('資料表（依檔名比對）：' + (errData.message || res.statusText));
+          }
+        } catch(err){ errors.push('資料表（依檔名比對）：' + err.message); }
       }
       if(storagePath){
         try{
@@ -882,8 +893,8 @@
         } else if(msg.type === 'remove'){
           const entry = store.get(msg.id);
           let dbDeleteError = null;
-          if(entry && entry.dbFileId){
-            const delResult = await deleteFromDatabase(entry.dbFileId, entry.storagePath);
+          if(entry){
+            const delResult = await deleteFromDatabase(entry.dbFileId, entry.storagePath, entry.dbFileId ? null : entry.name);
             if(!delResult.ok) dbDeleteError = delResult.error;
           }
           store.delete(msg.id);
