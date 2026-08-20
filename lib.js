@@ -1,11 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
+// 不同的 Supabase／Vercel 整合方式,自動產生的環境變數名稱不完全一樣，
+// 這裡依序嘗試幾種常見命名，只要其中一組存在就能用，不用每次手動對名字
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.POSTGRES_URL_NON_POOLING;
+
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE ||
+  process.env.SUPABASE_SECRET_KEY;
+
 // 用 service_role 金鑰（不是 anon key）連線，這個金鑰只能放在後端環境變數，
 // 絕對不能寫進前端程式碼或洩漏出去——它可以繞過 RLS，等於資料庫的完整權限。
-export const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export function setCors(res){
   res.setHeader('Access-Control-Allow-Origin', '*');
