@@ -862,10 +862,17 @@
             entry.storageError = uploadResult.ok ? null : uploadResult.error;
 
             const dbRecords = buildDbRecords(sheet);
-            const dbResult = await saveToDatabase(msg.name, sheetName, model, dbRecords, entry.storagePath, dbFileId);
-            entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
-            entry.dbError = dbResult.ok === false ? dbResult.error : null;
-            entry.dbFileId = dbResult.ok ? dbResult.fileId : null;
+            if(!dbRecords.length){
+              // 明確標示成失敗，而不是讓它安靜地留在「未同步」狀態不容易被發現
+              entry.dbStatus = 'bad';
+              entry.dbError = '找不到任何可辨識的唯一碼欄位（IMEI1/Serial No./MAC ID/PCBA SN 都是空的），請確認這份 Excel 的 I/M/N/AJ 欄位位置是否符合預期範本';
+              entry.dbFileId = null;
+            } else {
+              const dbResult = await saveToDatabase(msg.name, sheetName, model, dbRecords, entry.storagePath, dbFileId);
+              entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
+              entry.dbError = dbResult.ok === false ? dbResult.error : null;
+              entry.dbFileId = dbResult.ok ? dbResult.fileId : null;
+            }
 
             store.set(id, entry);
             dbPutMeta({ id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null, dbFileId: entry.dbFileId || null });
@@ -882,10 +889,15 @@
           } else {
             await ensureRowsLoaded(entry);
             const dbRecords = buildDbRecordsFromParsedRows(entry.rows);
-            const dbResult = await saveToDatabase(entry.name, entry.sheetName || 'Report', entry.model, dbRecords);
-            entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
-            entry.dbError = dbResult.ok === false ? dbResult.error : null;
-            entry.dbFileId = dbResult.ok ? dbResult.fileId : (entry.dbFileId || null);
+            if(!dbRecords.length){
+              entry.dbStatus = 'bad';
+              entry.dbError = '找不到任何可辨識的唯一碼欄位（IMEI1/Serial No./MAC ID/PCBA SN 都是空的），請確認這份 Excel 的欄位是否符合預期範本';
+            } else {
+              const dbResult = await saveToDatabase(entry.name, entry.sheetName || 'Report', entry.model, dbRecords);
+              entry.dbStatus = !dbResult.attempted ? null : (dbResult.ok ? 'ok' : 'bad');
+              entry.dbError = dbResult.ok === false ? dbResult.error : null;
+              entry.dbFileId = dbResult.ok ? dbResult.fileId : (entry.dbFileId || null);
+            }
             dbPutMeta({ id: entry.id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null, dbFileId: entry.dbFileId || null });
             self.postMessage({ type:'sync-to-db-ok', reqId: msg.reqId, file: fileMetaOf(entry) });
           }
