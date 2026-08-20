@@ -356,7 +356,7 @@
     <div class="config">
       <div class="count-row">
         <label class="field-label">比對欄位數量</label>
-        <input type="number" class="count-input" id="compareCount" min="1" max="99" >
+        <input type="number" class="count-input" id="compareCount" min="1" max="99" value="1" >
       </div>
 
       <div class="fields-row" id="fieldsRow">
@@ -1197,7 +1197,7 @@
   compareCountInput.addEventListener('change', () => {
     let v = parseInt(compareCountInput.value, 10);
     if(isNaN(v) || v < 1) v = 1;
-    if(v > 999) ;
+    if(v > 100) v = 100 ;
     compareCountInput.value = v;
     syncCompareFields(v);
   });
