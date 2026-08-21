@@ -1491,12 +1491,16 @@
     if(currentPage < totalPages){ currentPage++; renderCurrentPage(); }
   });
 
+  let searchDebounceTimer = null;
   document.getElementById('searchBox').addEventListener('input', (e) => {
     if(!resultsCtx) return;
     const q = e.target.value.trim().toLowerCase();
-    currentList = q ? resultsCtx.dataset.filter(item => resultsCtx.matchQuery(item, q)) : resultsCtx.dataset;
-    currentPage = 1;
-    renderCurrentPage();
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      currentList = q ? resultsCtx.dataset.filter(item => resultsCtx.matchQuery(item, q)) : resultsCtx.dataset;
+      currentPage = 1;
+      renderCurrentPage();
+    }, 200);
   });
 
   document.getElementById('exportBtn').addEventListener('click', () => {
@@ -1556,6 +1560,12 @@
         headHtml += `<th class="${cls}">${escapeHtml(c)}</th>`;
       });
 
+      // 預先幫每一列算好搜尋用的字串（只算一次），之後打字搜尋時只要直接比對現成的字串，
+      // 不用每次都重新把整列組成字串再轉小寫，這是列數一多會卡的主因
+      flat.forEach(item => {
+        item._searchHay = [item.file, item.label, ...cols.map(c => item.row[c])].join(' ').toLowerCase();
+      });
+
       resultsCtx = {
         dataset: flat,
         renderRows(list){
@@ -1571,8 +1581,7 @@
           }).join('');
         },
         matchQuery(item, q){
-          const hay = [item.file, item.label, ...cols.map(c => item.row[c])].join(' ').toLowerCase();
-          return hay.includes(q);
+          return item._searchHay.includes(q);
         },
         exportHeader: ['來源檔案', '比對方向', '重複欄位', ...cols],
         exportRow(item){ return [item.file, item.mode==='horizontal'?'橫排':'直排', item.label, ...cols.map(c=>item.row[c] ?? '')]; }
