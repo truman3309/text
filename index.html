@@ -356,7 +356,7 @@
     <div class="config">
       <div class="count-row">
         <label class="field-label">比對欄位數量</label>
-        <input type="number" class="count-input" id="compareCount" min="1" max="99" value="1">
+        <input type="number" class="count-input" id="compareCount" min="1" max="100" value="1">
       </div>
 
       <div class="fields-row" id="fieldsRow">
@@ -865,9 +865,9 @@
         const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?select=*&order=uploaded_at.asc&limit=1000', {
           headers: supabaseHeaders(),
         });
-        if(!res.ok) return [];
-        return await res.json();
-      } catch(err){ return []; }
+        if(!res.ok) return { ok:false, files: [] };
+        return { ok:true, files: await res.json() };
+      } catch(err){ return { ok:false, files: [] }; }
     }
 
     // 依需要才把某個檔案實際的資料列從資料庫撈回來（點查看 JSON 或執行比對時才拉，避免一開頁就撈一大堆資料）
@@ -906,10 +906,10 @@
           metas.forEach(m => store.set(m.id, { ...m, rows: null }));
 
           // 每次打開網頁都去資料庫撈一次完整檔案清單，把本機沒有的（例如別的裝置上傳的）補進畫面
-          const remoteFiles = await fetchRemoteFilesList();
+          const remoteResult = await fetchRemoteFilesList();
           const localDbFileIds = new Set([...store.values()].map(e => e.dbFileId).filter(Boolean));
           const localNames = new Set([...store.values()].map(e => e.name));
-          remoteFiles.forEach(rf => {
+          remoteResult.files.forEach(rf => {
             if(localDbFileIds.has(rf.id) || localNames.has(rf.source_file_name)) return; // 本機已經有了，不重複加入
             const remoteId = 'remote-' + rf.id;
             store.set(remoteId, {
@@ -920,7 +920,8 @@
             });
           });
 
-          self.postMessage({ type:'init-ok', reqId: msg.reqId, files: [...store.values()].map(fileMetaOf), columns: allColumns() });
+          // 這次撈檔案清單如果成功，就代表連線正常，不用再額外打一次 /rest/v1 測連線
+          self.postMessage({ type:'init-ok', reqId: msg.reqId, files: [...store.values()].map(fileMetaOf), columns: allColumns(), connectionOk: remoteResult.ok });
 
         } else if(msg.type === 'parse'){
           try{
@@ -1151,7 +1152,7 @@
   let fileMeta = [];
   let cachedColumns = [];
   const expandedGroups = new Set();
-  const collapsedGroups = new Set();
+  const openGroups = new Set(); // 記錄使用者主動展開過的分組，預設全部收起
   const GROUP_INITIAL_SHOW = 50;
 
   const compareFieldsList = document.getElementById('compareFieldsList');
@@ -1197,7 +1198,7 @@
   compareCountInput.addEventListener('change', () => {
     let v = parseInt(compareCountInput.value, 10);
     if(isNaN(v) || v < 1) v = 1;
-    if(v > 100) v = 100 ;
+    if(v > 100) v = 100;
     compareCountInput.value = v;
     syncCompareFields(v);
   });
@@ -1316,7 +1317,7 @@
 
     let html = '';
     groupEntries.forEach(([label, files]) => {
-      const isCollapsed = collapsedGroups.has(label);
+      const isCollapsed = !openGroups.has(label);
       const isExpanded = expandedGroups.has(label);
       const visibleFiles = isExpanded ? files : files.slice(0, GROUP_INITIAL_SHOW);
       const totalRowsInGroup = files.reduce((sum, f) => sum + f.rowCount, 0);
@@ -1341,24 +1342,28 @@
       }
     });
     list.innerHTML = html;
-    list.querySelectorAll('.file-group-label').forEach(el => {
-      el.addEventListener('click', () => {
-        const label = el.dataset.collapseLabel;
-        if(collapsedGroups.has(label)) collapsedGroups.delete(label);
-        else collapsedGroups.add(label);
-        renderFilesList();
-      });
-    });
-    list.querySelectorAll('.file-json-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); openJsonModal(btn.dataset.id); });
-    });
-    list.querySelectorAll('.file-remove-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); removeFromHistory(btn.dataset.id); });
-    });
-    list.querySelectorAll('.show-more-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); expandedGroups.add(btn.dataset.label); renderFilesList(); });
-    });
   }
+
+  // 事件代理：整個檔案清單只綁一次點擊監聽器，不用每次重繪都重新對每個按鈕綁一次
+  // （檔案數量一多，重複綁定/解綁事件監聽器本身就是明顯的效能負擔）
+  document.getElementById('filesList').addEventListener('click', (e) => {
+    const jsonBtn = e.target.closest('.file-json-btn');
+    if(jsonBtn){ e.stopPropagation(); openJsonModal(jsonBtn.dataset.id); return; }
+
+    const removeBtn = e.target.closest('.file-remove-btn');
+    if(removeBtn){ e.stopPropagation(); removeFromHistory(removeBtn.dataset.id); return; }
+
+    const showMoreBtn = e.target.closest('.show-more-btn');
+    if(showMoreBtn){ e.stopPropagation(); expandedGroups.add(showMoreBtn.dataset.label); renderFilesList(); return; }
+
+    const groupLabel = e.target.closest('.file-group-label');
+    if(groupLabel){
+      const label = groupLabel.dataset.collapseLabel;
+      if(openGroups.has(label)) openGroups.delete(label);
+      else openGroups.add(label);
+      renderFilesList();
+    }
+  });
 
   async function removeFromHistory(id){
     try{
@@ -1592,7 +1597,7 @@
       fileMeta = [];
       cachedColumns = [];
       expandedGroups.clear();
-      collapsedGroups.clear();
+      openGroups.clear();
       refreshCompareFieldOptions();
       refreshMainSlotDisplay();
       compareCountInput.value = 1;
@@ -1612,6 +1617,7 @@
     btn.disabled = true;
 
     const dbErrors = [];
+    let lastRenderAt = 0;
     for(let i = 0; i < targets.length; i++){
       btn.textContent = `自動同步中…（${i + 1} / ${targets.length}）`;
       try{
@@ -1622,7 +1628,13 @@
       } catch(err){
         dbErrors.push(`${targets[i].name}：${err.message}`);
       }
-      renderFilesList();
+      // 節流：批次同步很多檔案時，不用每一筆都整個重繪清單，避免畫面一直閃爍卡頓，
+      // 最後一筆一定重繪，確保結果一定會顯示出來
+      const now = Date.now();
+      if(now - lastRenderAt > 400 || i === targets.length - 1){
+        renderFilesList();
+        lastRenderAt = now;
+      }
     }
 
     btn.disabled = false;
@@ -1635,6 +1647,7 @@
 
   (async function init(){
     document.getElementById('filesList').innerHTML = '<div class="files-empty">正在讀取先前的紀錄與資料庫…</div>';
+    let connected = false;
     try{
       const res = await workerCall({ type:'init' });
       fileMeta = res.files;
@@ -1643,12 +1656,13 @@
       refreshMainSlotDisplay();
       checkReady();
       renderFilesList();
+      // 撈檔案清單這次呼叫本身就順便驗證了連線，不用再額外打一次獨立的連線測試
+      connected = !!res.connectionOk;
+      setStatusBar(connected ? 'ok' : 'bad', connected ? '資料庫連線成功' : '資料庫連線失敗');
     } catch(err){
       showSingleError('初始化背景執行緒失敗，請確認瀏覽器支援 Web Worker：' + err.message);
       renderFilesList();
     }
-    const connected = await testApiConnection();
-    renderFilesList();
     if(connected) syncAllUnsyncedFiles();
   })();
 </script>
