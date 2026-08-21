@@ -36,6 +36,14 @@
     padding:40px 20px 80px;
   }
   .wrap{ max-width:1080px; margin:0 auto; }
+  .site-nav{ display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .site-nav-link{
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; letter-spacing:.02em;
+    color:var(--muted); text-decoration:none; padding:9px 14px; border-bottom:2px solid transparent;
+    transition:color .15s, border-color .15s; margin-bottom:-1px;
+  }
+  .site-nav-link:hover{ color:var(--steel); }
+  .site-nav-link.active{ color:var(--steel); border-bottom-color:var(--steel); }
 
   header{ margin-bottom:22px; }
   .eyebrow{
@@ -116,7 +124,7 @@
   }
   .file-group-label:hover{ color:var(--steel-dark); }
   .group-label-text{ display:flex; align-items:center; gap:6px; }
-  .group-arrow{ font-size:15px; width:15px; display:inline-block; color:var(--muted); }
+  .group-arrow{ font-size:14px; width:14px; display:inline-block; color:var(--muted); }
   .file-group-label:first-child{ margin-top:0; }
   .file-group-count{
     font-weight:500; color:var(--muted); background:var(--steel-tint); border-radius:2px;
@@ -327,6 +335,12 @@
 </head>
 <body>
 <div class="wrap">
+
+  <nav class="site-nav">
+    <a class="site-nav-link active" href="index.html">欄位重複比對台</a>
+    <a class="site-nav-link" href="stats-by-model.html">機種出貨量統計</a>
+    <a class="site-nav-link" href="stats-by-date.html">出貨日期與出貨量統計</a>
+  </nav>
 
   <header>
     <div class="eyebrow">Duplicate Finder</div>
