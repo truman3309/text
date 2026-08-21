@@ -931,7 +931,9 @@
             const sheet = wb.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
             if(!rows.length) throw new Error('檔案內沒有可讀取的資料列');
-            const columns = Object.keys(rows[0]);
+            // 過濾掉沒有標題文字的欄位（SheetJS 會自動取名成 __EMPTY / __EMPTY_1 ...），
+            // 這些通常是 Excel 裡沒填標題的空白欄，不需要出現在比對欄位選單裡
+            const columns = Object.keys(rows[0]).filter(c => !/^__EMPTY(_\d+)?$/.test(c));
             const model = detectItemModel(columns, rows);
             const id = Date.now() + '-' + Math.random().toString(36).slice(2,7) + '-' + store.size;
             const uploadedAt = new Date().toISOString();
