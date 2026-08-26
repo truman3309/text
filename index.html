@@ -399,7 +399,7 @@
   <div class="panel files-panel">
     <div class="files-panel-header">
       <span class="field-label">已上傳檔案（全部納入比對）</span>
-      
+      <!--<button class="clear-all-btn" id="clearAllFilesBtn" style="display:none;">清空全部</button>-->
     </div>
     <button class="clear-all-btn" id="syncAllBtn" style="display:none; width:100%; margin-bottom:10px; border-color:var(--steel); color:var(--steel);">同步未存入的檔案到資料庫</button>
     <div class="files-hint">會保留在這個瀏覽器裡，重新整理或關閉分頁不會遺失</div>
@@ -1309,7 +1309,7 @@
 
   function renderFilesList(){
     const list = document.getElementById('filesList');
-    const clearAllBtn = document.getElementById('clearAllFilesBtn');
+   // const clearAllBtn = document.getElementById('clearAllFilesBtn');
     const syncAllBtn = document.getElementById('syncAllBtn');
     clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
     const unsyncedCount = fileMeta.filter(f => f.dbStatus !== 'ok').length;
@@ -1614,7 +1614,7 @@
     }
   });
 
-  document.getElementById('clearAllFilesBtn').addEventListener('click', async () => {
+  /*document.getElementById('clearAllFilesBtn').addEventListener('click', async () => {
     if(!fileMeta.length) return;
     if(!confirm('確定要清空全部已上傳的檔案紀錄嗎？這個動作無法復原（不含資料庫裡的資料，只清瀏覽器本機）。')) return;
     try{
@@ -1631,7 +1631,7 @@
       checkReady();
       renderFilesList();
     } catch(err){ showSingleError('清空時發生錯誤：' + err.message); }
-  });
+  });*/
 
   async function syncAllUnsyncedFiles(){
     const targets = fileMeta.filter(f => f.dbStatus !== 'ok');
