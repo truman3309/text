@@ -1310,11 +1310,11 @@
   function renderFilesList(){
     const list = document.getElementById('filesList');
    // const clearAllBtn = document.getElementById('clearAllFilesBtn');
-    const syncAllBtn = document.getElementById('syncAllBtn');
-    clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
+   // const syncAllBtn = document.getElementById('syncAllBtn');
+    //clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
     const unsyncedCount = fileMeta.filter(f => f.dbStatus !== 'ok').length;
-    syncAllBtn.style.display = unsyncedCount ? 'block' : 'none';
-    syncAllBtn.textContent = `同步未存入的檔案到資料庫（${unsyncedCount} 個）`;
+    //syncAllBtn.style.display = unsyncedCount ? 'block' : 'none';
+    //syncAllBtn.textContent = `同步未存入的檔案到資料庫（${unsyncedCount} 個）`;
     if(!fileMeta.length){
       list.innerHTML = '<div class="files-empty" id="filesEmpty">尚未上傳任何檔案</div>';
       return;
