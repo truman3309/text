@@ -400,7 +400,6 @@
   <div class="panel files-panel">
     <div class="files-panel-header">
       <span class="field-label">已上傳檔案（全部納入比對）</span>
-      <button class="clear-all-btn" id="clearAllFilesBtn" style="display:none;">清空全部</button>
     </div>
     <button class="clear-all-btn" id="syncAllBtn" style="display:none; width:100%; margin-bottom:10px; border-color:var(--steel); color:var(--steel);">同步未存入的檔案到資料庫</button>
     <div class="files-hint">會保留在這個瀏覽器裡，重新整理或關閉分頁不會遺失</div>
@@ -555,17 +554,6 @@
           const tx = db.transaction([META_STORE, DATA_STORE], 'readwrite');
           tx.objectStore(META_STORE).delete(id);
           tx.objectStore(DATA_STORE).delete(id);
-          tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
-        });
-      } catch(err){}
-    }
-    async function dbClearBoth(){
-      try{
-        const db = await openDB();
-        await new Promise((resolve, reject) => {
-          const tx = db.transaction([META_STORE, DATA_STORE], 'readwrite');
-          tx.objectStore(META_STORE).clear();
-          tx.objectStore(DATA_STORE).clear();
           tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
         });
       } catch(err){}
@@ -1021,11 +1009,6 @@
             self.postMessage({ type:'get-file-data-ok', reqId: msg.reqId, name: entry.name, columns: entry.columns, rows: entry.rows });
           }
 
-        } else if(msg.type === 'clear-all'){
-          store.clear();
-          dbClearBoth();
-          self.postMessage({ type:'clear-all-ok', reqId: msg.reqId });
-
         } else if(msg.type === 'test-api'){
           try{
             const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?select=id&limit=1', {
@@ -1323,9 +1306,7 @@
 
   function renderFilesList(){
     const list = document.getElementById('filesList');
-    const clearAllBtn = document.getElementById('clearAllFilesBtn');
     const syncAllBtn = document.getElementById('syncAllBtn');
-    clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
     const unsyncedCount = fileMeta.filter(f => f.dbStatus !== 'ok').length;
     syncAllBtn.style.display = unsyncedCount ? 'block' : 'none';
     syncAllBtn.textContent = `同步未存入的檔案到資料庫（${unsyncedCount} 個）`;
@@ -1626,25 +1607,6 @@
       runBtn.textContent = originalBtnText;
       checkReady();
     }
-  });
-
-  document.getElementById('clearAllFilesBtn').addEventListener('click', async () => {
-    if(!fileMeta.length) return;
-    if(!confirm('確定要清空全部已上傳的檔案紀錄嗎？這個動作無法復原（不含資料庫裡的資料，只清瀏覽器本機）。')) return;
-    try{
-      await workerCall({ type:'clear-all' });
-      fileMeta = [];
-      cachedColumns = [];
-      expandedGroups.clear();
-      openGroups.clear();
-      refreshCompareFieldOptions();
-      refreshMainSlotDisplay();
-      compareCountInput.value = 9;
-      syncCompareFields(9);
-      document.getElementById('results').classList.remove('show');
-      checkReady();
-      renderFilesList();
-    } catch(err){ showSingleError('清空時發生錯誤：' + err.message); }
   });
 
   async function syncAllUnsyncedFiles(){
