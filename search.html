@@ -395,7 +395,7 @@
                 ${conditions.map(([field]) => `<td class="mono">${escapeHtml(row[field] ?? '')}</td>`).join('')}
                 <td class="filename">${escapeHtml(row.shipment_files ? row.shipment_files.source_file_name : '—')}</td>
                 <td class="mono">${escapeHtml(row.shipment_files ? row.shipment_files.sheet_name : '—')}</td>
-                <td class="mono">${row.row_index}</td>
+                <td class="mono">${row.row_index + 2}</td>
               </tr>
             `).join('')}</tbody>
           </table>
