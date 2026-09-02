@@ -1201,7 +1201,7 @@
       groups.get(label).push(f);
     });
     const groupEntries = [...groups.entries()].sort((a, b) => {
-      if(a[0] === 'IMEI1') return 1;
+      if(a[0] === '未分類') return 1;
       if(b[0] === '未分類') return -1;
       return a[0].localeCompare(b[0], 'zh-Hant');
     });
