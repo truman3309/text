@@ -23,7 +23,7 @@
     color:var(--ink); font-family:'IBM Plex Sans', system-ui, sans-serif;
     min-height:100vh; padding:40px 20px 80px;
   }
-  .wrap{ max-width:1050px; margin:0 auto; }
+  .wrap{ max-width:1000px; margin:0 auto; }
   .site-nav{ display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
   .site-nav-link{
     font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; letter-spacing:.02em;
@@ -39,7 +39,7 @@
   }
   .eyebrow::before{ content:''; width:22px; height:1px; background:var(--steel); display:inline-block; }
   h1{ font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:clamp(26px,4vw,36px); margin:0 0 8px; letter-spacing:-0.01em; }
-  header p{ margin:0; color:var(--muted); font-size:14px; max-width:680px; line-height:1.6; }
+  header p{ margin:0; color:var(--muted); font-size:14px; max-width:660px; line-height:1.6; }
 
   .api-status-bar{
     display:flex; align-items:center; gap:8px; padding:8px 4px; margin-bottom:20px;
@@ -61,50 +61,23 @@
     flex:1; min-width:180px; padding:8px 11px; border:1px solid var(--border); border-radius:2px;
     font-size:13.5px; font-family:'IBM Plex Sans',sans-serif;
   }
-  .refresh-btn, .export-btn, .expand-all-btn{
+  .refresh-btn, .export-btn{
     font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; letter-spacing:.03em;
     background:none; border:1px solid var(--steel); color:var(--steel); padding:8px 16px;
     border-radius:2px; cursor:pointer; white-space:nowrap;
   }
-  .refresh-btn:hover, .export-btn:hover, .expand-all-btn:hover{ background:var(--steel); color:#fff; }
+  .refresh-btn:hover, .export-btn:hover{ background:var(--steel); color:#fff; }
 
-  /* Column labels for the 年月／機種／數量 rows */
-  .col-labels{
-    display:grid; grid-template-columns:120px 1fr 110px 28px; gap:10px; padding:9px 22px;
-    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
-    color:var(--muted); border-bottom:1px solid var(--border); background:#FAFBFB;
-  }
-  .col-labels span:nth-child(3){ text-align:right; }
-
-  /* Flat rows: 年月 / 機種 / 數量, three columns, one row per model */
-  .model-row-header{
-    display:grid; grid-template-columns:120px 1fr 110px 28px; gap:10px; align-items:center;
-    padding:11px 22px; cursor:pointer; user-select:none;
-    border-bottom:1px solid #EEF0F1; transition:background .1s;
-    font-family:'IBM Plex Mono',monospace; font-size:13px;
-  }
-  .model-row-header:hover{ background:#FAFBFB; }
-  .model-row-header.expanded{ background:var(--steel-tint); }
-  .model-row-header.new-month{ border-top:2px solid var(--steel-dark); }
-  .m-ym{ color:var(--steel-dark); font-weight:700; }
-  .m-name{ overflow:hidden; text-overflow:ellipsis; }
-  .m-qty{ font-weight:700; text-align:right; color:var(--brass); white-space:nowrap; }
-  .caret{
-    width:16px; height:16px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-    font-size:11px; color:var(--muted); transition:transform .15s ease; transform:rotate(0deg); justify-self:end;
-  }
-  .model-row-header.expanded .caret{ transform:rotate(90deg); }
-
-  .detail-wrap{ padding:2px 22px 14px 40px; background:var(--paper); border-bottom:1px solid #EEF0F1; }
+  .table-scroll{ overflow-x:auto; }
   table{ border-collapse:collapse; width:100%; font-size:13px; }
   thead th{
-    text-align:left; padding:8px 12px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+    text-align:left; padding:9px 14px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;
     letter-spacing:.06em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); white-space:nowrap;
   }
-  tbody td{ padding:8px 12px; border-bottom:1px solid #EEF0F1; white-space:nowrap; font-family:'IBM Plex Mono',monospace; }
-  tbody tr:last-child td{ border-bottom:none; }
+  tbody td{ padding:9px 14px; border-bottom:1px solid #EEF0F1; white-space:nowrap; font-family:'IBM Plex Mono',monospace; }
+  tbody tr:hover{ background:#FAFBFB; }
   td.qty{ font-weight:700; text-align:right; }
-  td.filename{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--steel); white-space:normal; word-break:break-all; max-width:380px; }
+  td.filename{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--steel); white-space:normal; word-break:break-all; max-width:340px; }
   .unparsed-badge{
     display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:600;
     background:rgba(168,72,47,0.1); color:var(--danger); padding:1px 6px; border-radius:2px; margin-left:6px;
@@ -115,15 +88,9 @@
   }
   .section-hint{ font-size:12px; color:var(--muted); padding:0 22px 12px; line-height:1.6; }
 
-  .table-scroll{ overflow-x:auto; }
-
   .empty-state, .loading-state{ padding:60px 20px; text-align:center; color:var(--muted); font-size:14px; }
   .loading-state .big, .empty-state .big{ font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--ink); margin-bottom:6px; }
   .error-msg{ color:var(--danger); font-size:13px; padding:14px 22px; font-family:'IBM Plex Mono',monospace; white-space:pre-line; }
-
-  @media (max-width:640px){
-    .model-row-header, .col-labels{ grid-template-columns:82px 1fr 84px 22px; font-size:12px; }
-  }
 </style>
 </head>
 <body>
@@ -139,7 +106,7 @@
   <header>
     <div class="eyebrow">Shipment Stats — By Date</div>
     <h1>出貨日期與出貨量統計</h1>
-    <p>依檔案名稱解析出貨日期（例如 "Aug 14 2026" 或 "260304" 這類格式）與出貨數量（檔名裡的 "XXXPCS"）。每一列以「年月／機種／數量」並排顯示，依年月新到舊排序；點擊可展開看到該機種當月每個檔案的日期、檔名與數量，預設全部收合。無法從檔名判讀日期的部分列在下方單獨區塊。</p>
+    <p>依檔案名稱解析出貨日期（例如 "Aug 14 2026" 或 "260304" 這類格式）與出貨數量（檔名裡的 "XXXPCS"）。無法從檔名判讀的部分會列在下方單獨區塊，數量會改用資料庫實際列數，並標示「無法解析日期」。</p>
   </header>
 
   <div class="api-status-bar" id="apiStatusBar">
@@ -165,7 +132,6 @@
 
     <div class="toolbar">
       <input class="search-box" id="searchBox" placeholder="搜尋檔名或機種…">
-      <button class="expand-all-btn" id="expandAllBtn">全部展開</button>
       <button class="refresh-btn" id="refreshBtn">重新整理</button>
       <button class="export-btn" id="exportBtn">匯出 CSV</button>
     </div>
@@ -203,6 +169,8 @@
     apiStatusText.textContent = text;
   }
 
+  // shipment_files 是檔案層級的表，數量遠比 shipment_records 少，一般不會超過 1000 筆，
+  // 但保險起見還是做分頁，避免檔案數量成長後漏抓
   async function fetchAllShipmentFiles(){
     const PAGE_SIZE = 1000;
     let all = [];
@@ -227,9 +195,11 @@
   const MONTH_NAMES = { jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11 };
   const THIS_YEAR = new Date().getFullYear();
 
+  // 從檔名嘗試解析出貨日期跟數量，格式不固定，盡量抓，抓不到就回傳 null
   function parseShipmentInfoFromFilename(filename){
     let date = null;
 
+    // 格式一：英文月份，例如 "Aug 14 2026" / "July 30 2026"
     const monthMatch = filename.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/);
     if(monthMatch){
       const mKey = monthMatch[1].slice(0, 3).toLowerCase();
@@ -240,6 +210,7 @@
       }
     }
 
+    // 格式二：6 碼數字 YYMMDD，例如 "260304" = 2026-03-04（限制年份要接近現在，避免誤判成 PO/REF 編號的一部分）
     if(!date){
       const ymdMatch = filename.match(/(?<!\d)(\d{2})(\d{2})(\d{2})(?!\d)/);
       if(ymdMatch){
@@ -252,6 +223,7 @@
       }
     }
 
+    // 數量：找檔名裡的「數字 + PCS」
     let quantity = null;
     const pcsMatch = filename.match(/(\d+)\s*PCS/i);
     if(pcsMatch) quantity = parseInt(pcsMatch[1], 10);
@@ -267,108 +239,40 @@
     return `${y}-${m}-${day}`;
   }
 
-  let fullRows = []; // 已解析出日期的明細（每筆一個檔案）
+  let fullRows = []; // 已解析出日期的
   let unparsedRows = []; // 解析不出日期的
 
-  const expandedModels = new Set(); // key: "y-m-model"
-
-  function buildFlatGroups(rows){
-    const map = new Map(); // "y-m-model(normalized)" -> { year, month, model, files, total }
-    rows.forEach(r => {
-      const y = r.date.getFullYear();
-      const m = r.date.getMonth() + 1;
-      const rawModel = (r.model || '').trim() || '未標示機種';
-      // 用去除前後空白、轉小寫後的字串當比對用的 key，避免因為大小寫或空白差異被拆成兩排
-      const normalizedKey = rawModel.toLowerCase();
-      const key = `${y}-${m}-${normalizedKey}`;
-      if(!map.has(key)) map.set(key, { year: y, month: m, model: rawModel, files: [], total: 0 });
-      const g = map.get(key);
-      g.files.push(r);
-      g.total += r.quantity;
-    });
-}
-  function renderFlatGroups(groups){
-    if(!groups.length) return '<div class="empty-state"><div class="big">沒有可判讀日期的資料</div></div>';
-
-    let prevYm = null;
-    const rows = groups.map(g => {
-      const key = `${g.year}-${g.month}-${g.model}`;
-      const expanded = expandedModels.has(key);
-      const ymText = `${g.year} / ${String(g.month).padStart(2,'0')}`;
-      const ymKey = `${g.year}-${g.month}`;
-      const isNewYm = ymKey !== prevYm;
-      prevYm = ymKey;
-
-      const detail = expanded ? `
-        <div class="detail-wrap">
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>日期</th><th>檔名</th><th>機種</th><th style="text-align:right;">數量</th></tr></thead>
-              <tbody>
-                ${g.files.map(f => `
-                  <tr>
-                    <td>${escapeHtml(f.dateStr)}</td>
-                    <td class="filename">${escapeHtml(f.source_file_name)}</td>
-                    <td>${escapeHtml(f.model || '—')}</td>
-                    <td class="qty">${f.quantity.toLocaleString()}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>` : '';
-
-      return `
-        <div class="model-row-header${expanded ? ' expanded' : ''}${isNewYm ? ' new-month' : ''}" data-toggle-model="${escapeHtml(key)}">
-          <span class="m-ym">${ymText}</span>
-          <span class="m-name">${escapeHtml(g.model)}</span>
-          <span class="m-qty">${g.total.toLocaleString()} 台</span>
-          <span class="caret">▸</span>
-        </div>
-        ${detail}`;
-    }).join('');
-
-    return `
-      <div class="col-labels">
-        <span>年月</span><span>機種</span><span>數量</span><span></span>
-      </div>
-      ${rows}`;
-  }
-
-  function currentFilteredRows(searchQ){
-    if(!searchQ) return fullRows;
-    const q = searchQ.toLowerCase();
-    return fullRows.filter(r =>
-      (r.source_file_name || '').toLowerCase().includes(q) || (r.model || '').toLowerCase().includes(q)
-    );
-  }
-
-  function renderTables(){
+  function renderTables(parsed, unparsed){
     const content = document.getElementById('content');
-    const searchQ = document.getElementById('searchBox').value.trim();
-    const filtered = currentFilteredRows(searchQ);
+    let html = '';
 
-    // 有搜尋字串時，自動展開所有符合的列，方便直接看到篩選結果
-    if(searchQ){
-      buildFlatGroups(filtered).forEach(g => expandedModels.add(`${g.year}-${g.month}-${g.model}`));
+    if(parsed.length){
+      html += `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>出貨日期</th><th>檔名</th><th>機種</th><th style="text-align:right;">數量</th></tr></thead>
+            <tbody>${parsed.map(r => `
+              <tr>
+                <td>${escapeHtml(r.dateStr)}</td>
+                <td class="filename">${escapeHtml(r.source_file_name)}</td>
+                <td>${escapeHtml(r.model || '—')}</td>
+                <td class="qty">${r.quantity.toLocaleString()}</td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>`;
+    } else {
+      html += '<div class="empty-state"><div class="big">沒有可判讀日期的資料</div></div>';
     }
 
-    const groups = buildFlatGroups(filtered);
-    let html = renderFlatGroups(groups);
-
-    const uq = searchQ.toLowerCase();
-    const unparsedFiltered = searchQ
-      ? unparsedRows.filter(r => (r.source_file_name || '').toLowerCase().includes(uq) || (r.model || '').toLowerCase().includes(uq))
-      : unparsedRows;
-
-    if(unparsedFiltered.length){
+    if(unparsed.length){
       html += `
-        <div class="section-title">無法從檔名判讀日期（${unparsedFiltered.length} 筆）</div>
+        <div class="section-title">無法從檔名判讀日期（${unparsed.length} 筆）</div>
         <div class="section-hint">數量改用資料庫實際列數，僅供參考；如果需要精準統計，建議調整這些檔案的命名格式。</div>
         <div class="table-scroll">
           <table>
             <thead><tr><th>檔名</th><th>機種</th><th>上傳時間</th><th style="text-align:right;">數量（資料庫列數）</th></tr></thead>
-            <tbody>${unparsedFiltered.map(r => `
+            <tbody>${unparsed.map(r => `
               <tr>
                 <td class="filename">${escapeHtml(r.source_file_name)}<span class="unparsed-badge">無法解析日期</span></td>
                 <td>${escapeHtml(r.model || '—')}</td>
@@ -381,18 +285,6 @@
     }
 
     content.innerHTML = html;
-    bindTreeEvents();
-  }
-
-  function bindTreeEvents(){
-    document.querySelectorAll('[data-toggle-model]').forEach(el => {
-      el.addEventListener('click', () => {
-        const key = el.getAttribute('data-toggle-model');
-        if(expandedModels.has(key)) expandedModels.delete(key);
-        else expandedModels.add(key);
-        renderTables();
-      });
-    });
   }
 
   async function loadData(){
@@ -409,7 +301,6 @@
 
       fullRows = [];
       unparsedRows = [];
-      expandedModels.clear();
 
       files.forEach(f => {
         const info = parseShipmentInfoFromFilename(f.source_file_name || '');
@@ -432,7 +323,7 @@
       document.getElementById('statTotalQty').innerHTML = totalQty.toLocaleString() + ' <span>台</span>';
       document.getElementById('statParsedCount').textContent = `${fullRows.length} / ${files.length}`;
 
-      renderTables();
+      renderTables(fullRows, unparsedRows);
     } catch(err){
       setStatusBar('bad', '資料庫連線失敗：' + err.message);
       content.innerHTML = '';
@@ -442,33 +333,27 @@
   }
 
   let searchDebounceTimer = null;
-  document.getElementById('searchBox').addEventListener('input', () => {
+  document.getElementById('searchBox').addEventListener('input', (e) => {
     clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(renderTables, 150);
+    const q = e.target.value.trim().toLowerCase();
+    searchDebounceTimer = setTimeout(() => {
+      const matchQ = r => (r.source_file_name || '').toLowerCase().includes(q) || (r.model || '').toLowerCase().includes(q);
+      const p = q ? fullRows.filter(matchQ) : fullRows;
+      const u = q ? unparsedRows.filter(matchQ) : unparsedRows;
+      renderTables(p, u);
+    }, 150);
   });
 
   document.getElementById('refreshBtn').addEventListener('click', loadData);
 
-  let allExpanded = false;
-  document.getElementById('expandAllBtn').addEventListener('click', () => {
-    allExpanded = !allExpanded;
-    document.getElementById('expandAllBtn').textContent = allExpanded ? '全部收合' : '全部展開';
-    if(allExpanded){
-      buildFlatGroups(currentFilteredRows(document.getElementById('searchBox').value.trim()))
-        .forEach(g => expandedModels.add(`${g.year}-${g.month}-${g.model}`));
-    } else {
-      expandedModels.clear();
-    }
-    renderTables();
-  });
-
   document.getElementById('exportBtn').addEventListener('click', () => {
-    const searchQ = document.getElementById('searchBox').value.trim();
-    const filtered = currentFilteredRows(searchQ);
-    if(!filtered.length && !unparsedRows.length) return;
-    const lines = ['"出貨日期","檔名","機種","數量"'];
-    filtered.forEach(r => {
-      lines.push(`"${r.dateStr}","${String(r.source_file_name).replace(/"/g,'""')}","${String(r.model || '').replace(/"/g,'""')}","${r.quantity}"`);
+    if(!fullRows.length && !unparsedRows.length) return;
+    const lines = ['"出貨日期","檔名","機種","數量","備註"'];
+    fullRows.forEach(r => {
+      lines.push(`"${r.dateStr}","${String(r.source_file_name).replace(/"/g,'""')}","${String(r.model || '').replace(/"/g,'""')}","${r.quantity}",""`);
+    });
+    unparsedRows.forEach(r => {
+      lines.push(`"","${String(r.source_file_name).replace(/"/g,'""')}","${String(r.model || '').replace(/"/g,'""')}","${r.row_count}","無法解析日期，數量為資料庫列數"`);
     });
     const csv = '\uFEFF' + lines.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
