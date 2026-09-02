@@ -44,6 +44,7 @@
   }
   .site-nav-link:hover{ color:var(--steel); }
   .site-nav-link.active{ color:var(--steel); border-bottom-color:var(--steel); }
+
   header{ margin-bottom:22px; }
   .eyebrow{
     font-family:'IBM Plex Mono', monospace;
@@ -58,6 +59,7 @@
     margin:0 0 8px; letter-spacing:-0.01em;
   }
   header p{ margin:0; color:var(--muted); font-size:14.5px; max-width:600px; line-height:1.6; }
+
   .panel{
     background:var(--card-bg);
     border:1px solid var(--border);
@@ -65,6 +67,7 @@
     box-shadow:0 1px 0 rgba(27,35,43,0.03);
   }
   .panel-body{ padding:18px 22px; }
+
   .api-config-panel{ margin-bottom:20px; }
   .api-status-bar{
     display:flex; align-items:center; gap:8px; padding:8px 4px; margin-bottom:12px;
@@ -101,6 +104,7 @@
   .db-badge.ok{ background:var(--success-tint); color:var(--success); }
   .db-badge.bad{ background:rgba(168,72,47,0.1); color:var(--danger); }
   .db-badge.off{ background:#F0F0EE; color:var(--muted); }
+
   .layout{ display:flex; gap:20px; align-items:flex-start; }
   .main-panel{ flex:1 1 640px; min-width:0; }
   .files-panel{ flex:0 0 280px; min-width:240px; padding:18px; }
@@ -144,6 +148,7 @@
     background:#fff; border-radius:2px; padding:3px 7px; cursor:pointer; color:var(--muted); white-space:nowrap;
   }
   .file-json-btn:hover{ border-color:var(--steel); color:var(--steel); }
+
   .json-modal-overlay{
     display:none; position:fixed; inset:0; background:rgba(27,35,43,0.55);
     z-index:1000; align-items:center; justify-content:center; padding:24px;
@@ -180,7 +185,9 @@
     cursor:pointer; color:var(--steel); text-align:center;
   }
   .show-more-btn:hover{ background:var(--steel-tint); }
+
   .upload-single{ padding:22px 22px 0; }
+
   .slot{
     position:relative; padding:26px 22px; border:1px dashed var(--border);
     border-radius:2px; background:var(--card-bg); transition:border-color .15s, background .15s;
@@ -195,6 +202,7 @@
   .corner.bl{ bottom:-1px; left:-1px; border-bottom:2px solid; border-left:2px solid; }
   .corner.br{ bottom:-1px; right:-1px; border-bottom:2px solid; border-right:2px solid; }
   .slot.loaded .corner{ border-color:var(--success); }
+
   .slot-label{
     font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.14em;
     color:var(--steel); font-weight:600; text-transform:uppercase; margin-bottom:10px;
@@ -207,6 +215,7 @@
     margin-top:10px; height:6px; border-radius:1px; background:#EDEFF0; overflow:hidden;
   }
   .upload-progress-fill{ height:100%; background:var(--success); transition:width .15s ease; }
+
   .config{ padding:22px; border-top:1px solid var(--border); margin-top:22px; }
   .config-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:18px; align-items:start; }
   .field-label{
@@ -218,12 +227,14 @@
     font-family:'IBM Plex Sans', sans-serif; font-size:14px; background:var(--card-bg); color:var(--ink);
   }
   select:disabled{ color:var(--muted); background:#FAFAFA; }
+
   .count-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; }
   .count-row .field-label{ margin-bottom:0; }
   .count-input{
     width:64px; padding:7px 8px; border:1px solid var(--border); border-radius:2px;
     font-family:'IBM Plex Mono',monospace; font-size:14px; text-align:center; color:var(--ink);
   }
+
   .fields-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:start; margin-bottom:20px; }
   #compareFieldsList{ display:contents; }
   .compare-field-row{ flex:1 1 150px; min-width:150px; }
@@ -232,11 +243,14 @@
     text-transform:uppercase; margin-bottom:5px; display:block; color:var(--brass);
   }
   .compare-field-row select{ margin:0; border-color:var(--brass); }
+
   .toggles{ display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px; }
   .toggle{ display:flex; align-items:center; gap:7px; font-size:13.5px; color:var(--ink); cursor:pointer; }
   .toggle input{ accent-color:var(--steel); width:15px; height:15px; }
+
   .mode-select{ margin-bottom:20px; }
   .mode-options{ display:flex; flex-direction:column; gap:9px; margin-top:4px; }
+
   .run-btn{
     font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:14px; letter-spacing:.04em;
     background:var(--steel); color:#fff; border:none; padding:12px 26px; border-radius:2px;
@@ -245,6 +259,7 @@
   .run-btn:hover:not(:disabled){ background:var(--steel-dark); }
   .run-btn:disabled{ background:#C6CDD1; cursor:not-allowed; }
   .error-msg{ color:var(--danger); font-size:13px; margin-top:12px; font-family:'IBM Plex Mono',monospace; white-space:pre-line; }
+
   .results{ margin-top:34px; display:none; }
   .results.show{ display:block; }
   .gauge{ padding:20px 22px; border-bottom:1px solid var(--border); }
@@ -260,6 +275,7 @@
   .stat-row{ display:flex; gap:24px; margin-top:12px; flex-wrap:wrap; }
   .stat{ font-size:12.5px; color:var(--muted); font-family:'IBM Plex Mono',monospace; }
   .stat b{ color:var(--ink); font-size:14px; }
+
   .toolbar{ display:flex; justify-content:space-between; align-items:center; padding:16px 22px; gap:12px; flex-wrap:wrap; }
   .search-box{
     flex:1; min-width:180px; padding:8px 11px; border:1px solid var(--border); border-radius:2px;
@@ -271,6 +287,7 @@
     border-radius:2px; cursor:pointer; white-space:nowrap;
   }
   .export-btn:hover{ background:var(--steel); color:#fff; }
+
   .table-scroll{ overflow-x:auto; border-top:1px solid var(--border); }
   table{ border-collapse:collapse; width:100%; font-size:13px; }
   thead th{
@@ -290,8 +307,10 @@
   th.key{ color:var(--brass); }
   th.cmp{ color:var(--brass); opacity:.7; }
   th.srcfile{ color:var(--steel); }
+
   .empty-state{ padding:50px 20px; text-align:center; color:var(--muted); font-size:14px; }
   .empty-state .big{ font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--ink); margin-bottom:6px; }
+
   .pagination{
     display:flex; align-items:center; justify-content:center; gap:16px;
     padding:14px 22px; border-top:1px solid var(--border);
@@ -303,6 +322,7 @@
   .page-btn:hover:not(:disabled){ background:var(--steel-tint); }
   .page-btn:disabled{ color:var(--muted); cursor:not-allowed; opacity:.5; }
   .page-info{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); }
+
   @media (max-width:900px){
     .layout{ flex-direction:column; }
     .files-panel{ flex:1 1 auto; width:100%; }
@@ -315,21 +335,25 @@
 </head>
 <body>
 <div class="wrap">
+
   <nav class="site-nav">
     <a class="site-nav-link active" href="index.html">欄位重複比對台</a>
     <a class="site-nav-link" href="stats-by-model.html">機種出貨量統計</a>
     <a class="site-nav-link" href="stats-by-date.html">出貨日期與出貨量統計</a>
     <a class="site-nav-link" href="search.html">資料庫搜尋</a>
   </nav>
+
   <header>
     <div class="eyebrow">Duplicate Finder</div>
     <h1>欄位重複比對台</h1>
     <p>上傳一份或多份 Excel／CSV（可一次大量上傳），指定要檢查重複的欄位，比對時會把所有已上傳的檔案合併在一起找重複。解析與比對運算都在背景執行緒進行，畫面不會被卡住。每次上傳同時會把資料存進下面設定的資料庫。</p>
   </header>
+
   <div class="api-status-bar" id="apiStatusBar">
     <span class="dot" id="apiStatusDot"></span>
     <span id="apiStatusText">資料庫連線設定</span>
   </div>
+
   <div class="layout">
   <div class="panel main-panel">
     <div class="upload-single">
@@ -343,14 +367,17 @@
         </div>
       </div>
     </div>
+
     <div class="config">
       <div class="count-row">
         <label class="field-label">比對欄位數量</label>
-        <input type="number" class="count-input" id="compareCount" min="1" max="100" value="1">
+        <input type="number" class="count-input" id="compareCount" min="1" max="100" value="9">
       </div>
+
       <div class="fields-row" id="fieldsRow">
         <div id="compareFieldsList"></div>
       </div>
+
       <div class="mode-select">
         <label class="field-label">比對方向</label>
         <div class="mode-options">
@@ -359,18 +386,21 @@
           <label class="toggle"><input type="radio" name="compareMode" value="both"> 兩者都要</label>
         </div>
       </div>
+
       <div class="toggles">
         <label class="toggle"><input type="checkbox" id="ignoreCaseS" checked> 忽略大小寫</label>
         <label class="toggle"><input type="checkbox" id="ignoreSpaceS" checked> 忽略前後空白</label>
       </div>
+
       <button class="run-btn" id="runBtnS" disabled>▶ 找出重複項目</button>
       <div class="error-msg" id="errorMsgS"></div>
     </div>
   </div>
+
   <div class="panel files-panel">
     <div class="files-panel-header">
       <span class="field-label">已上傳檔案（全部納入比對）</span>
-
+      <button class="clear-all-btn" id="clearAllFilesBtn" style="display:none;">清空全部</button>
     </div>
     <button class="clear-all-btn" id="syncAllBtn" style="display:none; width:100%; margin-bottom:10px; border-color:var(--steel); color:var(--steel);">同步未存入的檔案到資料庫</button>
     <div class="files-hint">會保留在這個瀏覽器裡，重新整理或關閉分頁不會遺失</div>
@@ -379,6 +409,7 @@
     </div>
   </div>
   </div>
+
   <div class="results" id="results">
     <div class="panel">
       <div class="gauge">
@@ -389,10 +420,12 @@
         <div class="gauge-track"><div class="gauge-fill" id="gaugeFill"></div></div>
         <div class="stat-row" id="statRow"></div>
       </div>
+
       <div class="toolbar">
         <input class="search-box" id="searchBox" placeholder="在結果中搜尋…">
         <button class="export-btn" id="exportBtn">匯出 CSV</button>
       </div>
+
       <div class="table-scroll">
         <table id="resultTable">
           <thead><tr id="tableHead"></tr></thead>
@@ -410,6 +443,7 @@
       </div>
     </div>
   </div>
+
   <div class="json-modal-overlay" id="jsonModalOverlay">
     <div class="json-modal">
       <div class="json-modal-header">
@@ -425,22 +459,27 @@
       <pre class="json-modal-body" id="jsonModalBody"></pre>
     </div>
   </div>
+
 </div>
+
 <script>
   function escapeHtml(str){
     return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
+
   // ================= 背景執行緒（Web Worker）=================
   // 解析 Excel、比對運算、IndexedDB 讀寫、送資料庫 API 全部搬到背景執行緒做，
   // 主執行緒只處理畫面，不管上傳幾百幾千個檔案都不會讓分頁「沒有回應」。
   const WORKER_SRC = String.raw`
     importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+
     const DB_NAME = 'fieldComparatorDB';
     const DB_VERSION = 2;
     const OLD_STORE_NAME = 'uploadedFiles';
     const META_STORE = 'meta';
     const DATA_STORE = 'data';
     let dbPromise = null;
+
     function openDB(){
       if(!self.indexedDB) return Promise.reject(new Error('瀏覽器不支援 IndexedDB'));
       if(dbPromise) return dbPromise;
@@ -477,6 +516,7 @@
       });
       return dbPromise;
     }
+
     async function dbPutMeta(meta){
       try{
         const db = await openDB();
@@ -519,6 +559,17 @@
         });
       } catch(err){}
     }
+    async function dbClearBoth(){
+      try{
+        const db = await openDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction([META_STORE, DATA_STORE], 'readwrite');
+          tx.objectStore(META_STORE).clear();
+          tx.objectStore(DATA_STORE).clear();
+          tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+        });
+      } catch(err){}
+    }
     async function dbLoadAllMeta(){
       try{
         const db = await openDB();
@@ -530,7 +581,9 @@
         });
       } catch(err){ return []; }
     }
+
     const store = new Map();
+
     async function ensureRowsLoaded(entry){
       if(entry.rows) return entry.rows;
       if(entry.remote && entry.dbFileId){
@@ -541,6 +594,7 @@
       entry.rows = (data && data.rows) || [];
       return entry.rows;
     }
+
     function detectItemModel(columns, rows){
       const col = columns.find(c => c.replace(/[\s_-]/g,'').toLowerCase() === 'itemmodel');
       if(!col) return null;
@@ -557,6 +611,7 @@
       counts.forEach((cnt,v) => { if(cnt>bestCount){ best=v; bestCount=cnt; } });
       return best;
     }
+
     // ---------- 資料庫欄位對照表（跟後端 server.js 的 FIELD_MAP 完全對齊，依 Excel 欄位位置）----------
     const DB_COLUMN_MAP = [
       ['A','poNo'],['B','referenceId'],['C','soNoContainerNo'],['D','vessel'],
@@ -573,9 +628,11 @@
       ['AX','rfidBrand'],['AY','rfidTid'],['AZ','pcbMainBoardSn'],['BA','blePcbSerialNo'],['BB','unitRemarks'],
       ['BC','esimIccid'],['BD','imsi'],['BE','simUnlockCode'],
     ];
+
     // ---------- 直接連 Supabase（REST API / PostgREST 語法），不再經過中間的後端伺服器 ----------
     const SUPABASE_URL = 'https://brhjfveertlypgrwkqfq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyaGpmdmVlcnRseXBncndrcWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxODI5NTUsImV4cCI6MjEwMjc1ODk1NX0.8fQJ-kiIHV8ePjDTjfby7fHmthqWekD1Sf3TtzfbGwo';
+
     function supabaseHeaders(extra){
       return Object.assign({
         'apikey': SUPABASE_ANON_KEY,
@@ -583,9 +640,11 @@
         'Content-Type': 'application/json',
       }, extra || {});
     }
+
     function genDbId(){
       return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
     }
+
     // camelCase（前端解析用的 key）-> snake_case（Supabase 資料表實際欄位名稱）
     const CAMEL_TO_SNAKE = {
       poNo:'po_no', referenceId:'reference_id', soNoContainerNo:'so_no_container_no', vessel:'vessel',
@@ -602,11 +661,13 @@
       rfidBrand:'rfid_brand', rfidTid:'rfid_tid', pcbMainBoardSn:'pcb_main_board_sn', blePcbSerialNo:'ble_pcb_serial_no', unitRemarks:'unit_remarks',
       esimIccid:'esim_iccid', imsi:'imsi', simUnlockCode:'sim_unlock_code',
     };
+
     function toSnakeCaseFields(rec){
       const out = {};
       Object.keys(CAMEL_TO_SNAKE).forEach(camel => { out[CAMEL_TO_SNAKE[camel]] = rec[camel] || null; });
       return out;
     }
+
     // 把一列資料依照 Excel 欄位順序（A~BE）組成一行 CSV 文字，取代原本存 JSON 物件的做法
     function toCsvRow(rec){
       return DB_COLUMN_MAP.map(([, key]) => {
@@ -614,11 +675,13 @@
         return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       }).join(',');
     }
+
     function colLetterToIndex(letter){
       let idx = 0;
       for(let i = 0; i < letter.length; i++) idx = idx * 26 + (letter.toUpperCase().charCodeAt(i) - 64);
       return idx - 1;
     }
+
     function buildDbRecords(sheet){
       const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       if(raw.length < 2) return [];
@@ -634,6 +697,7 @@
         })
         .filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
+
     // 把原始 Excel 檔案本身上傳到 Supabase Storage（跟資料表是分開的儲存空間）
     async function uploadFileToStorage(fileId, fileName, bytes){
       const path = fileId + '/' + encodeURIComponent(fileName);
@@ -657,6 +721,7 @@
         return { ok:false, error: err.message };
       }
     }
+
     // 從 Supabase 刪除這個檔案（shipment_files 那筆刪掉，靠 ON DELETE CASCADE 連動刪掉底下所有 shipment_records），
     // 以及 Storage 裡的原始檔案
     async function deleteFromDatabase(dbFileId, storagePath, sourceFileName){
@@ -696,6 +761,7 @@
       }
       return errors.length ? { ok:false, error: errors.join('；') } : { ok:true };
     }
+
     async function saveToDatabase(sourceFileName, sheetName, model, dbRecords, storagePath, fileId){
       if(!dbRecords.length) return { attempted:false };
       fileId = fileId || genDbId();
@@ -713,6 +779,7 @@
           const errData = await fileRes.json().catch(() => ({}));
           return { attempted:true, ok:false, error: errData.message || fileRes.statusText };
         }
+
         // 2) 分批把資料列寫進 shipment_records（Supabase 一次 insert 可以送整個陣列）
         const BATCH_SIZE = 500;
         for(let i = 0; i < dbRecords.length; i += BATCH_SIZE){
@@ -739,6 +806,7 @@
         return { attempted:true, ok:false, error: err.message };
       }
     }
+
     // 標題文字 -> 資料庫欄位名稱的對照（重新同步已解析過的舊資料時用，
     // 這種情況只剩下依標題文字為 key 的 rows，沒有原始 sheet 可以照欄位位置重讀）
     const HEADER_NAME_MAP = {
@@ -753,10 +821,11 @@
       'PCBA SN':'pcbaSn', 'LCD SN':'lcdSn', 'Mambo Device ID':'mamboDeviceId', 'Bluetooth MAC 2':'bluetoothMac2', 'ICCID':'iccid',
       'RFID EPC MEMORY BRAND':'rfidEpcMemoryBrand', 'RFID (Android SN)':'rfidAndroidSn', 'Battery Manufacture Date':'batteryManufactureDate', 'ISIM':'isim',
       'Camera Indicator':'cameraIndicator', '5G Wifi':'wifi5g', 'Guest Wifi':'guestWifi',
-      'BT MAC – Main Board':'btMacMainBoard', 'BT MAC – Daughter Board':'btMacDaughterBoard',
+      'BT MAC \u2013 Main Board':'btMacMainBoard', 'BT MAC \u2013 Daughter Board':'btMacDaughterBoard',
       'RFID Brand':'rfidBrand', 'RFID TID':'rfidTid', 'PCB Main Board Serial No.':'pcbMainBoardSn', 'BLE PCB Serial No.':'blePcbSerialNo',
       'Unit Remarks':'unitRemarks', 'eSIM ICCID':'esimIccid', 'IMSI':'imsi', 'SIM Unlock Code':'simUnlockCode',
     };
+
     function buildDbRecordsFromParsedRows(rows){
       return rows.map(row => {
         const rec = {};
@@ -768,11 +837,13 @@
         return rec;
       }).filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
+
     // camelKey -> 原始 Excel 標題文字（HEADER_NAME_MAP 的反向對照），
     // 用來把資料庫存的 CSV 資料還原成跟本機解析格式一致的物件，才能套用到比對功能
     const CAMEL_TO_HEADER = {};
     Object.keys(HEADER_NAME_MAP).forEach(header => { CAMEL_TO_HEADER[HEADER_NAME_MAP[header]] = header; });
     const HEADERS_IN_DB_ORDER = DB_COLUMN_MAP.map(([, camelKey]) => CAMEL_TO_HEADER[camelKey] || camelKey);
+
     // 簡單的 CSV 單列解析（處理雙引號跳脫），對應 toCsvRow() 產生的格式
     function parseCsvRow(csvText){
       const result = [];
@@ -795,12 +866,14 @@
       result.push(cur);
       return result;
     }
+
     function csvRowToDisplayRow(csvText){
       const values = parseCsvRow(csvText);
       const row = {};
       HEADERS_IN_DB_ORDER.forEach((header, idx) => { row[header] = values[idx] ?? ''; });
       return row;
     }
+
     // 撈出資料庫裡「全部」的檔案清單（只有檔案層級的中繼資料，不含資料列，很輕量）
     async function fetchRemoteFilesList(){
       try{
@@ -811,6 +884,7 @@
         return { ok:true, files: await res.json() };
       } catch(err){ return { ok:false, files: [] }; }
     }
+
     // 依需要才把某個檔案實際的資料列從資料庫撈回來（點查看 JSON 或執行比對時才拉，避免一開頁就撈一大堆資料）
     async function fetchRemoteFileRows(dbFileId){
       try{
@@ -823,6 +897,7 @@
         return data.map(r => csvRowToDisplayRow(r.full_row));
       } catch(err){ return []; }
     }
+
     function fileMetaOf(entry){
       return {
         id: entry.id, name: entry.name, rowCount: entry.rowCount, columnCount: entry.columns.length,
@@ -836,6 +911,7 @@
       store.forEach(entry => entry.columns.forEach(c => { if(!seen.has(c)){ seen.add(c); cols.push(c); } }));
       return cols;
     }
+
     self.onmessage = async function(e){
       const msg = e.data;
       try{
@@ -843,6 +919,7 @@
           const metas = await dbLoadAllMeta();
           metas.sort((a,b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
           metas.forEach(m => store.set(m.id, { ...m, rows: null }));
+
           // 每次打開網頁都去資料庫撈一次完整檔案清單，把本機沒有的（例如別的裝置上傳的）補進畫面
           const remoteResult = await fetchRemoteFilesList();
           const localDbFileIds = new Set([...store.values()].map(e => e.dbFileId).filter(Boolean));
@@ -857,8 +934,10 @@
               remote: true,
             });
           });
+
           // 這次撈檔案清單如果成功，就代表連線正常，不用再額外打一次 /rest/v1 測連線
           self.postMessage({ type:'init-ok', reqId: msg.reqId, files: [...store.values()].map(fileMetaOf), columns: allColumns(), connectionOk: remoteResult.ok });
+
         } else if(msg.type === 'parse'){
           try{
             const data = new Uint8Array(msg.buffer);
@@ -874,11 +953,13 @@
             const id = Date.now() + '-' + Math.random().toString(36).slice(2,7) + '-' + store.size;
             const uploadedAt = new Date().toISOString();
             const entry = { id, name: msg.name, sheetName, columns, model, rowCount: rows.length, uploadedAt, rows };
+
             // 先把原始 Excel 檔案本身上傳到 Supabase Storage，跟資料庫用同一個 id 串起來
             const dbFileId = genDbId();
             const uploadResult = await uploadFileToStorage(dbFileId, msg.name, data);
             entry.storagePath = uploadResult.ok ? uploadResult.path : null;
             entry.storageError = uploadResult.ok ? null : uploadResult.error;
+
             const dbRecords = buildDbRecords(sheet);
             if(!dbRecords.length){
               // 明確標示成失敗，而不是讓它安靜地留在「未同步」狀態不容易被發現
@@ -891,6 +972,7 @@
               entry.dbError = dbResult.ok === false ? dbResult.error : null;
               entry.dbFileId = dbResult.ok ? dbResult.fileId : null;
             }
+
             store.set(id, entry);
             dbPutMeta({ id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null, dbFileId: entry.dbFileId || null });
             dbPutData({ id, rows: entry.rows });
@@ -898,6 +980,7 @@
           } catch(err){
             self.postMessage({ type:'parse-err', reqId: msg.reqId, message: (err && err.message) || '無法解析檔案，請確認格式為 .xlsx / .xls / .csv' });
           }
+
         } else if(msg.type === 'sync-to-db'){
           const entry = store.get(msg.id);
           if(!entry){
@@ -917,6 +1000,7 @@
             dbPutMeta({ id: entry.id, name: entry.name, sheetName: entry.sheetName, columns: entry.columns, model: entry.model, rowCount: entry.rowCount, uploadedAt: entry.uploadedAt, dbStatus: entry.dbStatus || null, dbError: entry.dbError || null, storagePath: entry.storagePath || null, dbFileId: entry.dbFileId || null });
             self.postMessage({ type:'sync-to-db-ok', reqId: msg.reqId, file: fileMetaOf(entry) });
           }
+
         } else if(msg.type === 'remove'){
           const entry = store.get(msg.id);
           let dbDeleteError = null;
@@ -927,6 +1011,7 @@
           store.delete(msg.id);
           dbDeleteBoth(msg.id);
           self.postMessage({ type:'remove-ok', reqId: msg.reqId, columns: allColumns(), dbDeleteError });
+
         } else if(msg.type === 'get-file-data'){
           const entry = store.get(msg.id);
           if(!entry){
@@ -935,6 +1020,12 @@
             await ensureRowsLoaded(entry);
             self.postMessage({ type:'get-file-data-ok', reqId: msg.reqId, name: entry.name, columns: entry.columns, rows: entry.rows });
           }
+
+        } else if(msg.type === 'clear-all'){
+          store.clear();
+          dbClearBoth();
+          self.postMessage({ type:'clear-all-ok', reqId: msg.reqId });
+
         } else if(msg.type === 'test-api'){
           try{
             const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?select=id&limit=1', {
@@ -949,6 +1040,7 @@
           } catch(err){
             self.postMessage({ type:'test-api-ok', reqId: msg.reqId, ok:false, error: err.message });
           }
+
         } else if(msg.type === 'compare'){
           const { compareCols, compareMode, ignoreCase, ignoreSpace } = msg;
           const normalize = (v) => {
@@ -957,10 +1049,13 @@
             if(ignoreCase) s = s.toLowerCase();
             return s;
           };
+
           await Promise.all([...store.values()].map(ensureRowsLoaded));
+
           const allRows = [];
           store.forEach(entry => entry.rows.forEach(r => allRows.push({ file: entry.name, row: r })));
           const cols = allColumns();
+
           function buildRowGroups(){
             const groups = [];
             for(let i=0;i<compareCols.length;i++){
@@ -992,13 +1087,16 @@
             });
             return groups;
           }
+
           let allGroups = [];
           if(compareMode==='horizontal'||compareMode==='both') allGroups = allGroups.concat(buildRowGroups());
           if(compareMode==='vertical'||compareMode==='both') allGroups = allGroups.concat(buildColumnGroups());
+
           const flat = [];
           allGroups.forEach((g,gi) => g.items.forEach(item => flat.push({
             groupIndex: gi, mode: g.mode, label: g.label, matchedFields: g.matchedFields, file: item.file, row: item.row
           })));
+
           self.postMessage({
             type:'compare-ok', reqId: msg.reqId,
             flat, groupCount: allGroups.length, totalRows: allRows.length, fileCount: store.size, cols
@@ -1009,9 +1107,11 @@
       }
     };
   `;
+
   let worker = null;
   let reqCounter = 0;
   const pending = new Map();
+
   function getWorker(){
     if(worker) return worker;
     const blob = new Blob([WORKER_SRC], { type: 'application/javascript' });
@@ -1030,6 +1130,7 @@
     };
     return worker;
   }
+
   function workerCall(payload, transfer){
     return new Promise((resolve, reject) => {
       let w;
@@ -1039,13 +1140,16 @@
       w.postMessage({ ...payload, reqId }, transfer || []);
     });
   }
+
   // ================= 資料庫連線狀態（直接連 Supabase，網址跟金鑰寫在 Worker 裡）=================
   const apiStatusDot = document.getElementById('apiStatusDot');
   const apiStatusText = document.getElementById('apiStatusText');
+
   function setStatusBar(state, text){
     apiStatusDot.className = 'dot' + (state ? ' ' + state : '');
     apiStatusText.textContent = text;
   }
+
   async function testApiConnection(){
     setStatusBar('pending', '資料庫連線：測試中…');
     try{
@@ -1060,14 +1164,17 @@
       return false;
     }
   }
+
   // ================= 主執行緒狀態（只存輕量的中繼資料，不存整份資料）=================
   let fileMeta = [];
   let cachedColumns = [];
   const expandedGroups = new Set();
   const openGroups = new Set(); // 記錄使用者主動展開過的分組，預設全部收起
   const GROUP_INITIAL_SHOW = 50;
+
   const compareFieldsList = document.getElementById('compareFieldsList');
   const compareCountInput = document.getElementById('compareCount');
+
   function makeCompareRow(index){
     const row = document.createElement('div');
     row.className = 'compare-field-row';
@@ -1077,9 +1184,11 @@
     row.appendChild(label);
     const sel = document.createElement('select');
     sel.className = 'compare-field-select';
+    sel.dataset.index = index;
     row.appendChild(sel);
     return row;
   }
+
   function syncCompareFields(count){
     const rows = compareFieldsList.querySelectorAll('.compare-field-row');
     if(count > rows.length){
@@ -1089,19 +1198,33 @@
     }
     refreshCompareFieldOptions();
   }
+
+  // 9 個唯一碼欄位的預設值，依序對應第 1~9 個比對欄位（欄位標題文字要跟 Excel 範本裡的完全一致）
+  const DEFAULT_COMPARE_FIELDS = [
+    'IMEI1', 'Serial No.', 'MAC ID', 'Battery SN', 'PCBA SN',
+    'LCD SN', 'ICCID', 'PCB Main Board Serial No.', 'SIM Unlock Code',
+  ];
+
   function refreshCompareFieldOptions(){
     compareFieldsList.querySelectorAll('.compare-field-select').forEach(sel => {
       const prev = sel.value;
+      const wasUninitialized = sel.disabled; // 這個下拉選單目前還沒有帶入過真正的選項
       if(cachedColumns.length){
         sel.disabled = false;
         sel.innerHTML = cachedColumns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-        if(cachedColumns.includes(prev)) sel.value = prev;
+        const defaultField = DEFAULT_COMPARE_FIELDS[parseInt(sel.dataset.index, 10)];
+        if(cachedColumns.includes(prev)){
+          sel.value = prev; // 保留使用者原本選的（或上次帶入的預設值），不要每次重新整理都跳掉
+        } else if(wasUninitialized && defaultField && cachedColumns.includes(defaultField)){
+          sel.value = defaultField; // 第一次帶入選項時，套用對應的唯一碼欄位當預設值
+        }
       } else {
         sel.disabled = true;
         sel.innerHTML = '<option>先上傳檔案</option>';
       }
     });
   }
+
   compareCountInput.addEventListener('change', () => {
     let v = parseInt(compareCountInput.value, 10);
     if(isNaN(v) || v < 1) v = 1;
@@ -1109,10 +1232,13 @@
     compareCountInput.value = v;
     syncCompareFields(v);
   });
-  syncCompareFields(1);
+
+  syncCompareFields(9);
+
   const slot = document.getElementById('slotS');
   const input = document.getElementById('fileS');
   const body = document.getElementById('slotSBody');
+
   function refreshMainSlotDisplay(){
     if(!fileMeta.length){
       slot.classList.remove('loaded');
@@ -1125,9 +1251,11 @@
       <div class="slot-file">已上傳 ${fileMeta.length} 個檔案，共 ${totalRows} 列</div>
       <div class="slot-meta">比對時會把這些檔案合併在一起找重複。點擊或拖曳可以再加入更多檔案</div>`;
   }
+
   function checkReady(){ document.getElementById('runBtnS').disabled = !fileMeta.length; }
   function showSingleError(msg){ document.getElementById('errorMsgS').textContent = msg; }
   function clearSingleError(){ document.getElementById('errorMsgS').textContent = ''; }
+
   async function handleFiles(fileList){
     clearSingleError();
     const files = Array.from(fileList || []);
@@ -1137,12 +1265,15 @@
     const dbErrors = [];
     const total = files.length;
     const knownNames = new Set(fileMeta.map(f => f.name));
+
     for(let i = 0; i < files.length; i++){
       const file = files[i];
+
       if(knownNames.has(file.name)){
         skipped.push(file.name);
         continue;
       }
+
       const pct = Math.round((i / total) * 100);
       slot.classList.add('loaded');
       body.innerHTML = `
@@ -1150,6 +1281,7 @@
         <div class="slot-meta">${escapeHtml(file.name)}　同步存進資料庫中…</div>
         <div class="upload-progress-track"><div class="upload-progress-fill" style="width:${pct}%"></div></div>`;
       await new Promise(resolve => setTimeout(resolve, 0));
+
       try{
         const buffer = await file.arrayBuffer();
         const res = await workerCall({ type:'parse', buffer, name: file.name }, [buffer]);
@@ -1161,32 +1293,39 @@
         errors.push(`${file.name}：${err.message}`);
       }
     }
+
     refreshCompareFieldOptions();
     refreshMainSlotDisplay();
     document.getElementById('results').classList.remove('show');
     checkReady();
     renderFilesList();
+
     const messages = [];
     if(skipped.length) messages.push(`${skipped.length} 個檔案因檔名重複已跳過：` + skipped.slice(0, 5).join('、') + (skipped.length > 5 ? ` …等共 ${skipped.length} 個` : ''));
     if(errors.length) messages.push(`${errors.length} 個檔案解析失敗：` + errors.slice(0, 5).join('；') + (errors.length > 5 ? ` …等共 ${errors.length} 個` : ''));
     if(dbErrors.length) messages.push(`${dbErrors.length} 個檔案存進資料庫失敗：` + dbErrors.slice(0, 5).join('；') + (dbErrors.length > 5 ? ` …等共 ${dbErrors.length} 個` : ''));
     if(messages.length) showSingleError(messages.join('\n'));
   }
+
   slot.addEventListener('click', () => input.click());
   slot.addEventListener('keydown', (e) => { if(e.key==='Enter'||e.key===' ') input.click(); });
   input.addEventListener('change', (e) => { handleFiles(e.target.files); input.value = ''; });
   ['dragover','dragenter'].forEach(ev => slot.addEventListener(ev, (e)=>{ e.preventDefault(); slot.classList.add('drag'); }));
   ['dragleave','drop'].forEach(ev => slot.addEventListener(ev, (e)=>{ e.preventDefault(); slot.classList.remove('drag'); }));
   slot.addEventListener('drop', (e) => { handleFiles(e.dataTransfer.files); });
+
   function dbBadgeHtml(f){
     if(f.remote) return '<div class="db-badge ok" title="這筆是打開網頁時從資料庫撈回來的，不是這個瀏覽器上傳的">☁ 來自資料庫</div>';
     if(f.dbStatus === 'ok') return '<div class="db-badge ok">已存進資料庫</div>';
     if(f.dbStatus === 'bad') return `<div class="db-badge bad" title="${escapeHtml(f.dbError || '')}">資料庫存入失敗</div>`;
     return '<div class="db-badge off">未同步資料庫</div>';
   }
+
   function renderFilesList(){
     const list = document.getElementById('filesList');
+    const clearAllBtn = document.getElementById('clearAllFilesBtn');
     const syncAllBtn = document.getElementById('syncAllBtn');
+    clearAllBtn.style.display = fileMeta.length ? 'block' : 'none';
     const unsyncedCount = fileMeta.filter(f => f.dbStatus !== 'ok').length;
     syncAllBtn.style.display = unsyncedCount ? 'block' : 'none';
     syncAllBtn.textContent = `同步未存入的檔案到資料庫（${unsyncedCount} 個）`;
@@ -1205,6 +1344,7 @@
       if(b[0] === '未分類') return -1;
       return a[0].localeCompare(b[0], 'zh-Hant');
     });
+
     let html = '';
     groupEntries.forEach(([label, files]) => {
       const isCollapsed = !openGroups.has(label);
@@ -1233,15 +1373,19 @@
     });
     list.innerHTML = html;
   }
+
   // 事件代理：整個檔案清單只綁一次點擊監聽器，不用每次重繪都重新對每個按鈕綁一次
   // （檔案數量一多，重複綁定/解綁事件監聽器本身就是明顯的效能負擔）
   document.getElementById('filesList').addEventListener('click', (e) => {
     const jsonBtn = e.target.closest('.file-json-btn');
     if(jsonBtn){ e.stopPropagation(); openJsonModal(jsonBtn.dataset.id); return; }
+
     const removeBtn = e.target.closest('.file-remove-btn');
     if(removeBtn){ e.stopPropagation(); removeFromHistory(removeBtn.dataset.id); return; }
+
     const showMoreBtn = e.target.closest('.show-more-btn');
     if(showMoreBtn){ e.stopPropagation(); expandedGroups.add(showMoreBtn.dataset.label); renderFilesList(); return; }
+
     const groupLabel = e.target.closest('.file-group-label');
     if(groupLabel){
       const label = groupLabel.dataset.collapseLabel;
@@ -1250,6 +1394,7 @@
       renderFilesList();
     }
   });
+
   async function removeFromHistory(id){
     try{
       const res = await workerCall({ type:'remove', id });
@@ -1264,6 +1409,7 @@
       else clearSingleError();
     } catch(err){ showSingleError('移除檔案時發生錯誤：' + err.message); }
   }
+
   const JSON_PREVIEW_LIMIT = 500;
   const jsonModalOverlay = document.getElementById('jsonModalOverlay');
   const jsonModalTitle = document.getElementById('jsonModalTitle');
@@ -1271,6 +1417,7 @@
   const jsonModalBody = document.getElementById('jsonModalBody');
   const jsonModalDownload = document.getElementById('jsonModalDownload');
   let currentJsonFile = null;
+
   async function openJsonModal(id){
     jsonModalTitle.textContent = '讀取中…';
     jsonModalMeta.textContent = '';
@@ -1291,13 +1438,16 @@
       currentJsonFile = null;
     }
   }
+
   function closeJsonModal(){
     jsonModalOverlay.classList.remove('show');
     currentJsonFile = null;
   }
+
   document.getElementById('jsonModalClose').addEventListener('click', closeJsonModal);
   jsonModalOverlay.addEventListener('click', (e) => { if(e.target === jsonModalOverlay) closeJsonModal(); });
   document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && jsonModalOverlay.classList.contains('show')) closeJsonModal(); });
+
   jsonModalDownload.addEventListener('click', () => {
     if(!currentJsonFile) return;
     const jsonText = JSON.stringify(currentJsonFile.rows, null, 2);
@@ -1309,26 +1459,32 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   });
+
   let resultsCtx = null;
   const PAGE_SIZE = 200;
   let currentList = [];
   let currentPage = 1;
+
   function openResults(){ document.getElementById('results').classList.add('show'); }
+
   function setGauge(countHtml, pct, statHtml){
     document.getElementById('gaugeCount').innerHTML = countHtml;
     document.getElementById('gaugeFill').style.width = pct + '%';
     document.getElementById('statRow').innerHTML = statHtml;
   }
+
   function paintTable(headHtml, list){
     document.getElementById('tableHead').innerHTML = headHtml;
     currentList = list;
     currentPage = 1;
     renderCurrentPage();
   }
+
   function renderCurrentPage(){
     const table = document.getElementById('resultTable');
     const emptyState = document.getElementById('emptyState');
     const pagination = document.getElementById('pagination');
+
     if(!currentList.length){
       table.style.display = 'none';
       emptyState.style.display = 'block';
@@ -1336,13 +1492,16 @@
       document.getElementById('tableBody').innerHTML = '';
       return;
     }
+
     table.style.display = 'table';
     emptyState.style.display = 'none';
+
     const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE));
     if(currentPage > totalPages) currentPage = totalPages;
     const start = (currentPage - 1) * PAGE_SIZE;
     const pageSlice = currentList.slice(start, start + PAGE_SIZE);
     resultsCtx.renderRows(pageSlice);
+
     if(totalPages > 1){
       pagination.style.display = 'flex';
       document.getElementById('pageInfo').textContent =
@@ -1353,6 +1512,7 @@
       pagination.style.display = 'none';
     }
   }
+
   document.getElementById('pagePrev').addEventListener('click', () => {
     if(currentPage > 1){ currentPage--; renderCurrentPage(); }
   });
@@ -1360,6 +1520,7 @@
     const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE));
     if(currentPage < totalPages){ currentPage++; renderCurrentPage(); }
   });
+
   let searchDebounceTimer = null;
   document.getElementById('searchBox').addEventListener('input', (e) => {
     if(!resultsCtx) return;
@@ -1371,6 +1532,7 @@
       renderCurrentPage();
     }, 200);
   });
+
   document.getElementById('exportBtn').addEventListener('click', () => {
     if(!resultsCtx || !resultsCtx.dataset.length) return;
     const lines = [resultsCtx.exportHeader.map(h => `"${h.replace(/"/g,'""')}"`).join(',')];
@@ -1378,7 +1540,7 @@
       const row = resultsCtx.exportRow(item).map(v => `"${String(v ?? '').replace(/"/g,'""')}"`);
       lines.push(row.join(','));
     });
-    const csv = '﻿' + lines.join('\n');
+    const csv = '\uFEFF' + lines.join('\n');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1386,11 +1548,13 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   });
+
   document.getElementById('runBtnS').addEventListener('click', async () => {
     clearSingleError();
     if(!fileMeta.length){ showSingleError('請先上傳至少一個檔案'); return; }
     const compareCols = Array.from(document.querySelectorAll('.compare-field-select')).map(s => s.value);
     if(!compareCols.length || compareCols.some(c => !c)){ showSingleError('請先選擇所有比對欄位'); return; }
+
     const ignoreCase = document.getElementById('ignoreCaseS').checked;
     const ignoreSpace = document.getElementById('ignoreSpaceS').checked;
     const compareMode = document.querySelector('input[name="compareMode"]:checked').value;
@@ -1398,13 +1562,16 @@
       showSingleError('橫排比對需要至少選擇 2 個比對欄位（用來比較同一列中欄位彼此是否相同）');
       return;
     }
+
     const runBtn = document.getElementById('runBtnS');
     const originalBtnText = runBtn.textContent;
     runBtn.disabled = true;
     runBtn.textContent = '運算中…';
+
     try{
       const res = await workerCall({ type:'compare', compareCols, compareMode, ignoreCase, ignoreSpace });
       const { flat, groupCount, totalRows, fileCount, cols } = res;
+
       const distinctRows = new Set(flat.map(item => item.row));
       const distinctCount = distinctRows.size;
       const pct = totalRows ? Math.round((distinctCount/totalRows)*100) : 0;
@@ -1415,17 +1582,20 @@
         <div class="stat">比對方向 <b>${modeLabel}</b></div>
         <div class="stat">重複值組數 <b>${groupCount}</b></div>
         <div class="stat">重複列比例 <b>${pct}%</b></div>`);
+
       let headHtml = '<th class="srcfile">來源檔案</th><th class="key">重複欄位</th>';
       cols.forEach(c => {
         const isCompare = compareCols.includes(c);
         const cls = isCompare ? 'cmp' : '';
         headHtml += `<th class="${cls}">${escapeHtml(c)}</th>`;
       });
+
       // 預先幫每一列算好搜尋用的字串（只算一次），之後打字搜尋時只要直接比對現成的字串，
       // 不用每次都重新把整列組成字串再轉小寫，這是列數一多會卡的主因
       flat.forEach(item => {
         item._searchHay = [item.file, item.label, ...cols.map(c => item.row[c])].join(' ').toLowerCase();
       });
+
       resultsCtx = {
         dataset: flat,
         renderRows(list){
@@ -1446,6 +1616,7 @@
         exportHeader: ['來源檔案', '比對方向', '重複欄位', ...cols],
         exportRow(item){ return [item.file, item.mode==='horizontal'?'橫排':'直排', item.label, ...cols.map(c=>item.row[c] ?? '')]; }
       };
+
       document.getElementById('searchBox').value = '';
       openResults();
       paintTable(headHtml, flat);
@@ -1456,12 +1627,34 @@
       checkReady();
     }
   });
+
+  document.getElementById('clearAllFilesBtn').addEventListener('click', async () => {
+    if(!fileMeta.length) return;
+    if(!confirm('確定要清空全部已上傳的檔案紀錄嗎？這個動作無法復原（不含資料庫裡的資料，只清瀏覽器本機）。')) return;
+    try{
+      await workerCall({ type:'clear-all' });
+      fileMeta = [];
+      cachedColumns = [];
+      expandedGroups.clear();
+      openGroups.clear();
+      refreshCompareFieldOptions();
+      refreshMainSlotDisplay();
+      compareCountInput.value = 9;
+      syncCompareFields(9);
+      document.getElementById('results').classList.remove('show');
+      checkReady();
+      renderFilesList();
+    } catch(err){ showSingleError('清空時發生錯誤：' + err.message); }
+  });
+
   async function syncAllUnsyncedFiles(){
     const targets = fileMeta.filter(f => f.dbStatus !== 'ok');
     if(!targets.length) return;
+
     const btn = document.getElementById('syncAllBtn');
     const original = btn.textContent;
     btn.disabled = true;
+
     const dbErrors = [];
     let lastRenderAt = 0;
     for(let i = 0; i < targets.length; i++){
@@ -1482,12 +1675,15 @@
         lastRenderAt = now;
       }
     }
+
     btn.disabled = false;
     btn.textContent = original;
     if(dbErrors.length) showSingleError(`${dbErrors.length} 個檔案同步失敗：\n` + dbErrors.join('\n'));
     else clearSingleError();
   }
+
   document.getElementById('syncAllBtn').addEventListener('click', syncAllUnsyncedFiles);
+
   (async function init(){
     document.getElementById('filesList').innerHTML = '<div class="files-empty">正在讀取先前的紀錄與資料庫…</div>';
     let connected = false;
