@@ -468,8 +468,6 @@
   }
 
   // ================= 背景執行緒（Web Worker）=================
-  // 解析 Excel、比對運算、IndexedDB 讀寫、送資料庫 API 全部搬到背景執行緒做，
-  // 主執行緒只處理畫面，不管上傳幾百幾千個檔案都不會讓分頁「沒有回應」。
   const WORKER_SRC = String.raw`
     importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
 
@@ -601,7 +599,6 @@
       return best;
     }
 
-    // ---------- 資料庫欄位對照表（跟後端 server.js 的 FIELD_MAP 完全對齊，依 Excel 欄位位置）----------
     const DB_COLUMN_MAP = [
       ['A','poNo'],['B','referenceId'],['C','soNoContainerNo'],['D','vessel'],
       ['E','itemModel'],['F','brand'],['G','palletNo'],['H','color'],
@@ -618,33 +615,9 @@
       ['BC','esimIccid'],['BD','imsi'],['BE','simUnlockCode'],
     ];
 
-    // ---------- 直接連 Supabase（REST API / PostgREST 語法），設定改由後端 API 動態取得，不寫死在前端 ----------
+    // ---------- SUPABASE_URL / SUPABASE_ANON_KEY 由主執行緒透過 postMessage({type:'set-config'}) 傳進來 ----------
     let SUPABASE_URL = null;
     let SUPABASE_ANON_KEY = null;
-    let configPromise = null;
-
-    function ensureConfig(){
-      if(SUPABASE_URL && SUPABASE_ANON_KEY) return Promise.resolve();
-      if(!configPromise){
-        configPromise = fetch('/api/config')
-          .then(res => {
-            if(!res.ok) throw new Error('無法取得資料庫連線設定（HTTP ' + res.status + '）');
-            return res.json();
-          })
-          .then(cfg => {
-            if(!cfg.supabaseUrl || !cfg.supabaseAnonKey){
-              throw new Error('資料庫連線設定不完整');
-            }
-            SUPABASE_URL = cfg.supabaseUrl;
-            SUPABASE_ANON_KEY = cfg.supabaseAnonKey;
-          })
-          .catch(err => {
-            configPromise = null; // 失敗時允許下次重試
-            throw err;
-          });
-      }
-      return configPromise;
-    }
 
     function supabaseHeaders(extra){
       return Object.assign({
@@ -658,7 +631,6 @@
       return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
     }
 
-    // camelCase（前端解析用的 key）-> snake_case（Supabase 資料表實際欄位名稱）
     const CAMEL_TO_SNAKE = {
       poNo:'po_no', referenceId:'reference_id', soNoContainerNo:'so_no_container_no', vessel:'vessel',
       itemModel:'item_model', brand:'brand', palletNo:'pallet_no', color:'color',
@@ -681,7 +653,6 @@
       return out;
     }
 
-    // 把一列資料依照 Excel 欄位順序（A~BE）組成一行 CSV 文字，取代原本存 JSON 物件的做法
     function toCsvRow(rec){
       return DB_COLUMN_MAP.map(([, key]) => {
         const s = String(rec[key] ?? '');
@@ -711,7 +682,6 @@
         .filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
 
-    // 把原始 Excel 檔案本身上傳到 Supabase Storage（跟資料表是分開的儲存空間）
     async function uploadFileToStorage(fileId, fileName, bytes){
       const path = fileId + '/' + encodeURIComponent(fileName);
       try{
@@ -735,8 +705,6 @@
       }
     }
 
-    // 從 Supabase 刪除這個檔案（shipment_files 那筆刪掉，靠 ON DELETE CASCADE 連動刪掉底下所有 shipment_records），
-    // 以及 Storage 裡的原始檔案
     async function deleteFromDatabase(dbFileId, storagePath, sourceFileName){
       const errors = [];
       if(dbFileId){
@@ -750,7 +718,6 @@
           }
         } catch(err){ errors.push('資料表：' + err.message); }
       } else if(sourceFileName){
-        // 沒有記錄資料庫 id 的舊檔案（這個功能上線前就上傳過的），改用檔名去資料庫比對刪除
         try{
           const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?source_file_name=eq.' + encodeURIComponent(sourceFileName), {
             method: 'DELETE', headers: supabaseHeaders(),
@@ -779,7 +746,6 @@
       if(!dbRecords.length) return { attempted:false };
       fileId = fileId || genDbId();
       try{
-        // 1) 先在 shipment_files 新增一筆代表這次上傳
         const fileRes = await fetch(SUPABASE_URL + '/rest/v1/shipment_files', {
           method: 'POST',
           headers: supabaseHeaders({ 'Prefer': 'return=minimal' }),
@@ -793,7 +759,6 @@
           return { attempted:true, ok:false, error: errData.message || fileRes.statusText };
         }
 
-        // 2) 分批把資料列寫進 shipment_records（Supabase 一次 insert 可以送整個陣列）
         const BATCH_SIZE = 500;
         for(let i = 0; i < dbRecords.length; i += BATCH_SIZE){
           const batch = dbRecords.slice(i, i + BATCH_SIZE).map((rec, idx) => Object.assign(
@@ -807,7 +772,6 @@
           });
           if(!recRes.ok){
             const errData = await recRes.json().catch(() => ({}));
-            // 中途失敗時把剛新增的 file 清掉（設定了 ON DELETE CASCADE，記錄會一起清），避免留下半份資料
             await fetch(SUPABASE_URL + '/rest/v1/shipment_files?id=eq.' + fileId, {
               method: 'DELETE', headers: supabaseHeaders(),
             }).catch(() => {});
@@ -820,8 +784,6 @@
       }
     }
 
-    // 標題文字 -> 資料庫欄位名稱的對照（重新同步已解析過的舊資料時用，
-    // 這種情況只剩下依標題文字為 key 的 rows，沒有原始 sheet 可以照欄位位置重讀）
     const HEADER_NAME_MAP = {
       'PO No.':'poNo', 'Reference ID':'referenceId', 'SO No./Container No.':'soNoContainerNo', 'Vessel':'vessel',
       'Item Model':'itemModel', 'Brand':'brand', 'Pallet No.':'palletNo', 'Color':'color',
@@ -851,13 +813,10 @@
       }).filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
 
-    // camelKey -> 原始 Excel 標題文字（HEADER_NAME_MAP 的反向對照），
-    // 用來把資料庫存的 CSV 資料還原成跟本機解析格式一致的物件，才能套用到比對功能
     const CAMEL_TO_HEADER = {};
     Object.keys(HEADER_NAME_MAP).forEach(header => { CAMEL_TO_HEADER[HEADER_NAME_MAP[header]] = header; });
     const HEADERS_IN_DB_ORDER = DB_COLUMN_MAP.map(([, camelKey]) => CAMEL_TO_HEADER[camelKey] || camelKey);
 
-    // 簡單的 CSV 單列解析（處理雙引號跳脫），對應 toCsvRow() 產生的格式
     function parseCsvRow(csvText){
       const result = [];
       let cur = '';
@@ -887,7 +846,6 @@
       return row;
     }
 
-    // 撈出資料庫裡「全部」的檔案清單（只有檔案層級的中繼資料，不含資料列，很輕量）
     async function fetchRemoteFilesList(){
       try{
         const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?select=*&order=uploaded_at.asc&limit=1000', {
@@ -898,7 +856,6 @@
       } catch(err){ return { ok:false, files: [] }; }
     }
 
-    // 依需要才把某個檔案實際的資料列從資料庫撈回來（點查看 JSON 或執行比對時才拉，避免一開頁就撈一大堆資料）
     async function fetchRemoteFileRows(dbFileId){
       try{
         const res = await fetch(
@@ -927,19 +884,25 @@
 
     self.onmessage = async function(e){
       const msg = e.data;
+
+      // config 一定是第一則訊息，且不需要 reqId 對應的回覆，收到就設定完立刻 return
+      if(msg.type === 'set-config'){
+        SUPABASE_URL = msg.supabaseUrl;
+        SUPABASE_ANON_KEY = msg.supabaseAnonKey;
+        return;
+      }
+
       try{
-        await ensureConfig();
         if(msg.type === 'init'){
           const metas = await dbLoadAllMeta();
           metas.sort((a,b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
           metas.forEach(m => store.set(m.id, { ...m, rows: null }));
 
-          // 每次打開網頁都去資料庫撈一次完整檔案清單，把本機沒有的（例如別的裝置上傳的）補進畫面
           const remoteResult = await fetchRemoteFilesList();
           const localDbFileIds = new Set([...store.values()].map(e => e.dbFileId).filter(Boolean));
           const localNames = new Set([...store.values()].map(e => e.name));
           remoteResult.files.forEach(rf => {
-            if(localDbFileIds.has(rf.id) || localNames.has(rf.source_file_name)) return; // 本機已經有了，不重複加入
+            if(localDbFileIds.has(rf.id) || localNames.has(rf.source_file_name)) return;
             const remoteId = 'remote-' + rf.id;
             store.set(remoteId, {
               id: remoteId, name: rf.source_file_name, sheetName: rf.sheet_name, columns: HEADERS_IN_DB_ORDER,
@@ -949,7 +912,6 @@
             });
           });
 
-          // 這次撈檔案清單如果成功，就代表連線正常，不用再額外打一次 /rest/v1 測連線
           self.postMessage({ type:'init-ok', reqId: msg.reqId, files: [...store.values()].map(fileMetaOf), columns: allColumns(), connectionOk: remoteResult.ok });
 
         } else if(msg.type === 'parse'){
@@ -960,15 +922,12 @@
             const sheet = wb.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(sheet, { defval:'' });
             if(!rows.length) throw new Error('檔案內沒有可讀取的資料列');
-            // 過濾掉沒有標題文字的欄位（SheetJS 會自動取名成 __EMPTY / __EMPTY_1 ...），
-            // 這些通常是 Excel 裡沒填標題的空白欄，不需要出現在比對欄位選單裡
             const columns = Object.keys(rows[0]).filter(c => !/^__EMPTY(_\d+)?$/.test(c));
             const model = detectItemModel(columns, rows);
             const id = Date.now() + '-' + Math.random().toString(36).slice(2,7) + '-' + store.size;
             const uploadedAt = new Date().toISOString();
             const entry = { id, name: msg.name, sheetName, columns, model, rowCount: rows.length, uploadedAt, rows };
 
-            // 先把原始 Excel 檔案本身上傳到 Supabase Storage，跟資料庫用同一個 id 串起來
             const dbFileId = genDbId();
             const uploadResult = await uploadFileToStorage(dbFileId, msg.name, data);
             entry.storagePath = uploadResult.ok ? uploadResult.path : null;
@@ -976,7 +935,6 @@
 
             const dbRecords = buildDbRecords(sheet);
             if(!dbRecords.length){
-              // 明確標示成失敗，而不是讓它安靜地留在「未同步」狀態不容易被發現
               entry.dbStatus = 'bad';
               entry.dbError = '找不到任何可辨識的唯一碼欄位（IMEI1/Serial No./MAC ID/PCBA SN 都是空的），請確認這份 Excel 的 I/M/N/AJ 欄位位置是否符合預期範本';
               entry.dbFileId = null;
@@ -1117,18 +1075,17 @@
     };
   `;
 
+  // ================= 主執行緒（負責先跟後端要 config，再建立 Worker 並把 config 傳進去）=================
   let worker = null;
   let reqCounter = 0;
   const pending = new Map();
   let appConfig = null;
   let configPromiseMain = null;
 
-  // 在主執行緒抓 config（主執行緒的網址是正常的 https origin，fetch 相對路徑沒問題；
-  // Worker 是用 blob: URL 建立的，在裡面用相對路徑 fetch 會解析失敗，所以改成這裡抓好再傳進去）
   function loadAppConfig(){
     if(appConfig) return Promise.resolve(appConfig);
     if(!configPromiseMain){
-      configPromiseMain = fetch('../test/api/config.js')
+      configPromiseMain = fetch('/api/config')
         .then(res => {
           if(!res.ok) throw new Error('無法取得資料庫連線設定（HTTP ' + res.status + '）');
           return res.json();
@@ -1167,7 +1124,6 @@
     const cfg = await loadAppConfig();
     if(!worker){
       worker = createWorker();
-      // 建立 Worker 後的第一件事：把 config 傳進去，之後所有請求都會排在這則訊息之後處理
       worker.postMessage({ type:'set-config', supabaseUrl: cfg.supabaseUrl, supabaseAnonKey: cfg.supabaseAnonKey });
     }
     return worker;
@@ -1182,7 +1138,8 @@
       }).catch(reject);
     });
   }
-  // ================= 資料庫連線狀態（直接連 Supabase，網址跟金鑰改由後端動態提供）=================
+
+  // ================= 資料庫連線狀態 =================
   const apiStatusDot = document.getElementById('apiStatusDot');
   const apiStatusText = document.getElementById('apiStatusText');
 
@@ -1206,11 +1163,11 @@
     }
   }
 
-  // ================= 主執行緒狀態（只存輕量的中繼資料，不存整份資料）=================
+  // ================= 主執行緒狀態 =================
   let fileMeta = [];
   let cachedColumns = [];
   const expandedGroups = new Set();
-  const openGroups = new Set(); // 記錄使用者主動展開過的分組，預設全部收起
+  const openGroups = new Set();
   const GROUP_INITIAL_SHOW = 50;
 
   const compareFieldsList = document.getElementById('compareFieldsList');
@@ -1240,7 +1197,6 @@
     refreshCompareFieldOptions();
   }
 
-  // 9 個唯一碼欄位的預設值，依序對應第 1~9 個比對欄位（欄位標題文字要跟 Excel 範本裡的完全一致）
   const DEFAULT_COMPARE_FIELDS = [
     'IMEI1', 'Serial No.', 'MAC ID', 'Battery SN', 'PCBA SN',
     'LCD SN', 'ICCID', 'PCB Main Board Serial No.', 'SIM Unlock Code',
@@ -1249,15 +1205,15 @@
   function refreshCompareFieldOptions(){
     compareFieldsList.querySelectorAll('.compare-field-select').forEach(sel => {
       const prev = sel.value;
-      const wasUninitialized = sel.disabled; // 這個下拉選單目前還沒有帶入過真正的選項
+      const wasUninitialized = sel.disabled;
       if(cachedColumns.length){
         sel.disabled = false;
         sel.innerHTML = cachedColumns.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
         const defaultField = DEFAULT_COMPARE_FIELDS[parseInt(sel.dataset.index, 10)];
         if(cachedColumns.includes(prev)){
-          sel.value = prev; // 保留使用者原本選的（或上次帶入的預設值），不要每次重新整理都跳掉
+          sel.value = prev;
         } else if(wasUninitialized && defaultField && cachedColumns.includes(defaultField)){
-          sel.value = defaultField; // 第一次帶入選項時，套用對應的唯一碼欄位當預設值
+          sel.value = defaultField;
         }
       } else {
         sel.disabled = true;
@@ -1413,8 +1369,6 @@
     list.innerHTML = html;
   }
 
-  // 事件代理：整個檔案清單只綁一次點擊監聽器，不用每次重繪都重新對每個按鈕綁一次
-  // （檔案數量一多，重複綁定/解綁事件監聽器本身就是明顯的效能負擔）
   document.getElementById('filesList').addEventListener('click', (e) => {
     const jsonBtn = e.target.closest('.file-json-btn');
     if(jsonBtn){ e.stopPropagation(); openJsonModal(jsonBtn.dataset.id); return; }
@@ -1629,8 +1583,6 @@
         headHtml += `<th class="${cls}">${escapeHtml(c)}</th>`;
       });
 
-      // 預先幫每一列算好搜尋用的字串（只算一次），之後打字搜尋時只要直接比對現成的字串，
-      // 不用每次都重新把整列組成字串再轉小寫，這是列數一多會卡的主因
       flat.forEach(item => {
         item._searchHay = [item.file, item.label, ...cols.map(c => item.row[c])].join(' ').toLowerCase();
       });
@@ -1687,8 +1639,6 @@
       } catch(err){
         dbErrors.push(`${targets[i].name}：${err.message}`);
       }
-      // 節流：批次同步很多檔案時，不用每一筆都整個重繪清單，避免畫面一直閃爍卡頓，
-      // 最後一筆一定重繪，確保結果一定會顯示出來
       const now = Date.now();
       if(now - lastRenderAt > 400 || i === targets.length - 1){
         renderFilesList();
@@ -1715,7 +1665,6 @@
       refreshMainSlotDisplay();
       checkReady();
       renderFilesList();
-      // 撈檔案清單這次呼叫本身就順便驗證了連線，不用再額外打一次獨立的連線測試
       connected = !!res.connectionOk;
       setStatusBar(connected ? 'ok' : 'bad', connected ? '資料庫連線成功' : '資料庫連線失敗');
     } catch(err){
