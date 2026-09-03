@@ -6,6 +6,7 @@
 <title>欄位重複比對台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="">
 <style>
   :root{
     --paper:#F3F5F4;
@@ -617,9 +618,33 @@
       ['BC','esimIccid'],['BD','imsi'],['BE','simUnlockCode'],
     ];
 
-    // ---------- 直接連 Supabase（REST API / PostgREST 語法），不再經過中間的後端伺服器 ----------
-    const SUPABASE_URL = 'https://brhjfveertlypgrwkqfq.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyaGpmdmVlcnRseXBncndrcWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxODI5NTUsImV4cCI6MjEwMjc1ODk1NX0.8fQJ-kiIHV8ePjDTjfby7fHmthqWekD1Sf3TtzfbGwo';
+    // ---------- 直接連 Supabase（REST API / PostgREST 語法），設定改由後端 API 動態取得，不寫死在前端 ----------
+    let SUPABASE_URL = null;
+    let SUPABASE_ANON_KEY = null;
+    let configPromise = null;
+
+    function ensureConfig(){
+      if(SUPABASE_URL && SUPABASE_ANON_KEY) return Promise.resolve();
+      if(!configPromise){
+        configPromise = fetch('/api/config')
+          .then(res => {
+            if(!res.ok) throw new Error('無法取得資料庫連線設定（HTTP ' + res.status + '）');
+            return res.json();
+          })
+          .then(cfg => {
+            if(!cfg.supabaseUrl || !cfg.supabaseAnonKey){
+              throw new Error('資料庫連線設定不完整');
+            }
+            SUPABASE_URL = cfg.supabaseUrl;
+            SUPABASE_ANON_KEY = cfg.supabaseAnonKey;
+          })
+          .catch(err => {
+            configPromise = null; // 失敗時允許下次重試
+            throw err;
+          });
+      }
+      return configPromise;
+    }
 
     function supabaseHeaders(extra){
       return Object.assign({
@@ -903,6 +928,7 @@
     self.onmessage = async function(e){
       const msg = e.data;
       try{
+        await ensureConfig();
         if(msg.type === 'init'){
           const metas = await dbLoadAllMeta();
           metas.sort((a,b) => new Date(a.uploadedAt) - new Date(b.uploadedAt));
@@ -1094,12 +1120,35 @@
   let worker = null;
   let reqCounter = 0;
   const pending = new Map();
+  let appConfig = null;
+  let configPromiseMain = null;
 
-  function getWorker(){
-    if(worker) return worker;
+  // 在主執行緒抓 config（主執行緒的網址是正常的 https origin，fetch 相對路徑沒問題；
+  // Worker 是用 blob: URL 建立的，在裡面用相對路徑 fetch 會解析失敗，所以改成這裡抓好再傳進去）
+  function loadAppConfig(){
+    if(appConfig) return Promise.resolve(appConfig);
+    if(!configPromiseMain){
+      configPromiseMain = fetch('/api/config')
+        .then(res => {
+          if(!res.ok) throw new Error('無法取得資料庫連線設定（HTTP ' + res.status + '）');
+          return res.json();
+        })
+        .then(cfg => {
+          if(!cfg.supabaseUrl || !cfg.supabaseAnonKey){
+            throw new Error('資料庫連線設定不完整');
+          }
+          appConfig = cfg;
+          return cfg;
+        })
+        .catch(err => { configPromiseMain = null; throw err; });
+    }
+    return configPromiseMain;
+  }
+
+  function createWorker(){
     const blob = new Blob([WORKER_SRC], { type: 'application/javascript' });
-    worker = new Worker(URL.createObjectURL(blob));
-    worker.onmessage = (e) => {
+    const w = new Worker(URL.createObjectURL(blob));
+    w.onmessage = (e) => {
       const msg = e.data;
       const p = pending.get(msg.reqId);
       if(!p) return;
@@ -1107,24 +1156,33 @@
       if(msg.type && (msg.type.endsWith('-err') || msg.type === 'error')) p.reject(new Error(msg.message));
       else p.resolve(msg);
     };
-    worker.onerror = (e) => {
+    w.onerror = (e) => {
       pending.forEach(p => p.reject(new Error('背景執行緒發生錯誤：' + e.message)));
       pending.clear();
     };
+    return w;
+  }
+
+  async function getWorker(){
+    const cfg = await loadAppConfig();
+    if(!worker){
+      worker = createWorker();
+      // 建立 Worker 後的第一件事：把 config 傳進去，之後所有請求都會排在這則訊息之後處理
+      worker.postMessage({ type:'set-config', supabaseUrl: cfg.supabaseUrl, supabaseAnonKey: cfg.supabaseAnonKey });
+    }
     return worker;
   }
 
   function workerCall(payload, transfer){
     return new Promise((resolve, reject) => {
-      let w;
-      try{ w = getWorker(); } catch(err){ reject(err); return; }
-      const reqId = ++reqCounter;
-      pending.set(reqId, { resolve, reject });
-      w.postMessage({ ...payload, reqId }, transfer || []);
+      getWorker().then(w => {
+        const reqId = ++reqCounter;
+        pending.set(reqId, { resolve, reject });
+        w.postMessage({ ...payload, reqId }, transfer || []);
+      }).catch(reject);
     });
   }
-
-  // ================= 資料庫連線狀態（直接連 Supabase，網址跟金鑰寫在 Worker 裡）=================
+  // ================= 資料庫連線狀態（直接連 Supabase，網址跟金鑰改由後端動態提供）=================
   const apiStatusDot = document.getElementById('apiStatusDot');
   const apiStatusText = document.getElementById('apiStatusText');
 
