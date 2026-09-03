@@ -185,8 +185,29 @@
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
 
-  const SUPABASE_URL = 'https://brhjfveertlypgrwkqfq.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyaGpmdmVlcnRseXBncndrcWZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxODI5NTUsImV4cCI6MjEwMjc1ODk1NX0.8fQJ-kiIHV8ePjDTjfby7fHmthqWekD1Sf3TtzfbGwo';
+  let SUPABASE_URL = null;
+  let SUPABASE_ANON_KEY = null;
+  let configPromise = null;
+
+  function ensureConfig(){
+    if(SUPABASE_URL && SUPABASE_ANON_KEY) return Promise.resolve();
+    if(!configPromise){
+      configPromise = fetch('/api/config')
+        .then(res => {
+          if(!res.ok) throw new Error('無法取得資料庫連線設定（HTTP ' + res.status + '）');
+          return res.json();
+        })
+        .then(cfg => {
+          if(!cfg.supabaseUrl || !cfg.supabaseAnonKey){
+            throw new Error('資料庫連線設定不完整');
+          }
+          SUPABASE_URL = cfg.supabaseUrl;
+          SUPABASE_ANON_KEY = cfg.supabaseAnonKey;
+        })
+        .catch(err => { configPromise = null; throw err; });
+    }
+    return configPromise;
+  }
 
   function supabaseHeaders(extra){
     return Object.assign({
@@ -206,6 +227,7 @@
   async function testConnection(){
     setStatusBar('pending', '資料庫連線：測試中…');
     try{
+      await ensureConfig();
       const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?select=id&limit=1', { headers: supabaseHeaders() });
       if(res.ok){ setStatusBar('ok', '資料庫連線成功'); return true; }
       const errData = await res.json().catch(() => ({}));
@@ -226,6 +248,7 @@
   const RESULT_LIMIT_PER_FIELD = 50;
 
   async function searchRecordsByField(query, dbField){
+    await ensureConfig();
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/shipment_records?select=id,file_id,row_index,${dbField},item_model,shipment_files(source_file_name,sheet_name,uploaded_at)&${dbField}=ilike.*${encodeURIComponent(query)}*&limit=${RESULT_LIMIT_PER_FIELD}`,
       { headers: supabaseHeaders() }
@@ -359,6 +382,7 @@
   });
 
   async function searchRecordsByConditions(conditions){
+    await ensureConfig();
     const params = conditions
       .map(([field, value]) => `${field}=ilike.*${encodeURIComponent(value)}*`)
       .join('&');
