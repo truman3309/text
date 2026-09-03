@@ -1128,7 +1128,7 @@
   function loadAppConfig(){
     if(appConfig) return Promise.resolve(appConfig);
     if(!configPromiseMain){
-      configPromiseMain = fetch('/api/config.js')
+      configPromiseMain = fetch('../test/api/config.js')
         .then(res => {
           if(!res.ok) throw new Error('無法取得資料庫連線設定（HTTP ' + res.status + '）');
           return res.json();
