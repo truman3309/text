@@ -183,38 +183,21 @@
     apiStatusText.textContent = text;
   }
 
-  // 分頁把 shipment_records 裡所有的 item_model 撈回來（資料量大，PostgREST 預設一次最多回 1000 筆，要自己分頁撈完）
-  async function fetchAllItemModels(){
+ 
+  // 直接查已經在資料庫端算好聚合結果的 view，一次請求就拿到「機種＋數量」，不用整包資料撈回來自己算
+  async function fetchModelCounts(){
     await ensureConfig();
-    const PAGE_SIZE = 1000;
-    let all = [];
-    let offset = 0;
-    while(true){
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/shipment_records?select=item_model&order=id.asc&limit=${PAGE_SIZE}&offset=${offset}`,
-        { headers: supabaseHeaders() }
-      );
-      if(!res.ok){
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || res.statusText);
-      }
-      const data = await res.json();
-      all = all.concat(data.map(r => r.item_model));
-      if(data.length < PAGE_SIZE) break;
-      offset += PAGE_SIZE;
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/model_shipment_counts?select=model,qty&order=qty.desc`,
+      { headers: supabaseHeaders() }
+    );
+    if(!res.ok){
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || res.statusText);
     }
-    return all;
+    const data = await res.json();
+    return data.map(r => [r.model, r.qty]);
   }
-
-  function aggregateByModel(models){
-    const counts = new Map();
-    models.forEach(m => {
-      const key = (m || '').trim() || '未分類';
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }
-
   let fullData = []; // [[model, qty], ...]
   let maxQty = 0;
 
@@ -249,12 +232,11 @@
     content.innerHTML = '<div class="loading-state"><div class="big">正在讀取資料…</div><div>資料量較大時可能需要幾秒鐘</div></div>';
     setStatusBar('pending', '資料庫連線：讀取中…');
 
-    try{
-      const models = await fetchAllItemModels();
+      try{
+      fullData = await fetchModelCounts();
       setStatusBar('ok', '資料庫連線成功');
-      fullData = aggregateByModel(models);
       maxQty = fullData.length ? fullData[0][1] : 0;
-      const totalQty = models.length;
+      const totalQty = fullData.reduce((sum, [, qty]) => sum + qty, 0);
       updateSummary(fullData, totalQty);
       renderList(fullData);
     } catch(err){
