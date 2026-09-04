@@ -13,7 +13,7 @@
 | 方法 | 用途 |
 |---|---|
 | `escapeHtml(str)` | 把字串裡的 `& < > " '` 轉成 HTML 實體字元，避免使用者資料（檔名、機種名稱等）直接塞進 `innerHTML` 時被當成 HTML 語法解析，防止畫面跑版或簡單的 XSS。 |
-| `ensureConfig()` | **本次改造新增**。跟 `/api/config` 要 `SUPABASE_URL`／`SUPABASE_ANON_KEY`，成功後存進外層變數。用 `configPromise` 快取住這個 fetch 的 Promise，確保同一頁面即使多個地方同時呼叫，也只會真正打一次 API；失敗的話清掉快取，讓下次呼叫可以重試。 |
+| `ensureConfig()` | 設定值是拆開存成 SUPABASE_URL / SUPABASE_ANON_KEY 兩個全域變數，而不是存一個 cfg 物件；回傳值也是 undefined，只用來確保變數已就緒。適合搭配後續直接引用 SUPABASE_URL／SUPABASE_ANON_KEY 的程式碼使用。 |
 | `supabaseHeaders(extra)` | 組出打 Supabase REST API 需要的 HTTP headers（`apikey`、`Authorization: Bearer ...`、`Content-Type`）。`extra` 參數可以傳額外的 header（例如 `Prefer: return=minimal`）合併進去。 |
 | `setStatusBar(state, text)` | 更新畫面最上方那顆狀態燈（綠色/紅色/藍色小圓點）跟旁邊的文字，用來顯示目前跟資料庫的連線狀態。 |
 
