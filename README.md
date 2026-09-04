@@ -25,9 +25,7 @@
 
 | 方法 | 用途 |
 |---|---|
-| `loadAppConfig()` |兩層快取機制：appConfig（結果快取）+ configPromiseMain（請求進行中快取），避免重複打 API。
-錯誤處理後會重置狀態：失敗時把 configPromiseMain 設回 null，讓下次呼叫可以重新嘗試，而不是永遠卡在失敗的 Promise。
-多次呼叫安全（idempotent-like）：即使同時有多處程式呼叫 loadAppConfig()，也只會真正發出一次 fetch 請求。 |
+| `loadAppConfig()` |兩層快取機制：appConfig（結果快取）+ configPromiseMain（請求進行中快取），避免重複打 API。錯誤處理後會重置狀態：失敗時把 configPromiseMain 設回 null，讓下次呼叫可以重新嘗試，而不是永遠卡在失敗的 Promise。多次呼叫安全（idempotent-like）：即使同時有多處程式呼叫 loadAppConfig()，也只會真正發出一次 fetch 請求。 |
 | `createWorker()` | 建立實際的 Web Worker 實體，把 `WORKER_SRC` 這段字串包成 Blob URL 丟給 `new Worker()`，並設定收到訊息（`onmessage`）跟出錯（`onerror`）時要怎麼處理。 |
 | `getWorker()` | 取得（或第一次建立）Worker。第一次呼叫時會先 `await loadAppConfig()`，拿到 config 後才建立 Worker，並立刻用 `postMessage({type:'set-config', ...})` 把 Supabase 網址跟 key 傳進 Worker。 |
 | `workerCall(payload, transfer)` | 把一個請求包成 `Promise`送進 Worker，並用遞增的 `reqId` 對應「這個請求」跟「Worker 回傳的結果」，讓非同步的 `postMessage` 溝通可以用 `await` 的方式寫。 |
