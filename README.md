@@ -4,7 +4,7 @@
 
 | 方法 | 用途 |
 |---|---|
-| `handler(req, res)` | Vercel serverless function 的進入點。從 Vercel 的環境變數讀取 `SUPABASE_URL`、`SUPABASE_ANON_KEY`，包成 JSON 回傳給前端。設定 `Cache-Control: no-store` 確保每次都拿到最新值，不會被瀏覽器或 CDN 快取住。 |
+| `handler(req, res)` |這支 API 會回傳 Supabase 連線設定（URL + 匿名金鑰），對應前端 `loadAppConfig()` 打的 `/api/config`。 `Cache-Control: no-store` 確保每次都拿到最新設定，不被快取。`SUPABASE_ANON_KEY` 本身設計給前端用、受 RLS 保護，公開沒問題 |
 
 ---
 
