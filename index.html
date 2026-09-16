@@ -1,3 +1,45 @@
+/* =============================================================================
+ * 欄位重複比對台 - 前端主程式
+ * ---------------------------------------------------------------------------
+ * 整體架構說明（方便後續擴充時快速定位）：
+ *
+ *   1. 共用工具函式（escapeHtml）
+ *   2. 背景執行緒程式碼（WORKER_SRC，實際上是用字串包起來、在瀏覽器裡
+ *      動態建立成 Web Worker 執行的完整程式）：
+ *        2-1. IndexedDB 存取層（openDB / dbPutMeta / dbPutData / dbGetData / dbDeleteBoth / dbLoadAllMeta）
+ *        2-2. 欄位/資料模型定義（DB_COLUMN_MAP / HEADER_NAME_MAP 等對照表）
+ *        2-3. Supabase 遠端資料庫存取層（saveToDatabase / deleteFromDatabase / fetchRemoteFilesList...）
+ *        2-4. 檔案解析與資料轉換（buildDbRecords / buildDbRecordsFromParsedRows / CSV 解析）
+ *        2-5. Worker 訊息路由（self.onmessage，依 msg.type 分派到對應處理邏輯）
+ *   3. 主執行緒程式碼：
+ *        3-1. 設定載入與 Worker 建立/呼叫封裝（loadAppConfig / getWorker / workerCall）
+ *        3-2. 資料庫連線狀態顯示
+ *        3-3. 比對欄位選擇 UI（動態產生下拉選單列）
+ *        3-4. 檔案上傳區塊（拖曳/點擊上傳、上傳進度、清單渲染）
+ *        3-5. 檔案 JSON 檢視 Modal
+ *        3-6. 比對結果表格（分頁、搜尋、匯出 CSV）
+ *        3-7. 「執行比對」主流程
+ *        3-8. 批次同步未存入資料庫的檔案
+ *        3-9. 頁面初始化 IIFE
+ *
+ *   之後若要新增功能，建議依照上面的分區延伸，例如：
+ *     - 新增一種資料來源 -> 放在 2-3 遠端資料庫存取層旁
+ *     - 新增一種比對演算法 -> 放在 Worker 的 'compare' 訊息處理區塊裡
+ *     - 新增一種 UI 面板 -> 仿照 3-5 Modal 的模式獨立成一個小節
+ * ============================================================================= */
+ 
+/**
+ * escapeHtml(str)
+ * ----------------------------------------------------------------------------
+ * 用途：將字串中會被瀏覽器解讀成 HTML 標籤/屬性的特殊字元（& < > " '）
+ *       轉換成對應的 HTML 實體，避免在用字串拼接方式產生 innerHTML 時，
+ *       使用者資料（例如檔名、欄位內容）被誤判為 HTML 標籤，造成畫面跑版
+ *       或是 XSS（跨站腳本攻擊）風險。
+ * 參數：str - 任意型別，會先用 String() 轉成字串再處理
+ * 回傳：轉換後可安全放入 HTML 內容中的字串
+ * ----------------------------------------------------------------------------
+ */
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -468,16 +510,38 @@
   }
 
   // ================= 背景執行緒（Web Worker）=================
+  // 說明：以下這段字串（WORKER_SRC）是整個 Web Worker 的完整原始碼。
+  // 之所以用字串包起來，是因為要用 Blob + URL.createObjectURL 的方式
+  // 動態建立 Worker（不需要另外部署一個 .js 檔案）。
+  // Worker 負責：解析 Excel/CSV、寫入/讀取 IndexedDB（本機快取）、
+  // 呼叫 Supabase REST API 做遠端存取，以及執行比對演算法，
+  // 這些都是比較耗時或牽涉大量資料運算的工作，丟到背景執行緒可以避免卡住畫面。
   const WORKER_SRC = String.raw`
     importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-
+    // ---- IndexedDB 資料庫設定 ----
+    // DB_NAME / DB_VERSION：本機瀏覽器端 IndexedDB 的資料庫名稱與版本號。
+    // OLD_STORE_NAME：舊版（v1）使用的單一 store 名稱，用於升級時搬移資料。
+    // META_STORE：存放每個檔案的「中繼資料」（檔名、欄位、機型、列數...等，不含實際列資料）。
+    // DATA_STORE：存放每個檔案的「實際列資料」（rows），與 META_STORE 用同一個 id 對應。
+    // 這樣拆成兩個 store 是為了讓「只需要檔案清單」的操作（如畫面列表）不用把整份大資料都讀出來。
+    
     const DB_NAME = 'fieldComparatorDB';
     const DB_VERSION = 2;
     const OLD_STORE_NAME = 'uploadedFiles';
     const META_STORE = 'meta';
     const DATA_STORE = 'data';
     let dbPromise = null;
-
+       /**
+     * openDB()
+     * --------------------------------------------------------------------
+     * 用途：開啟（或建立）IndexedDB 資料庫連線，並在版本升級時（onupgradeneeded）
+     *       自動建立 META_STORE / DATA_STORE，同時把舊版 OLD_STORE_NAME 裡的資料
+     *       搬移拆分成新的兩個 store，搬完後刪除舊 store，達到「無痛升級」的效果。
+     *       使用 dbPromise 快取連線的 Promise，確保同一個 Worker 生命週期內
+     *       只會真正開啟一次資料庫連線（重複呼叫會拿到同一個 Promise）。
+     * 回傳：Promise，resolve 時帶入已開啟的 IDBDatabase 物件
+     * --------------------------------------------------------------------
+     */
     function openDB(){
       if(!self.indexedDB) return Promise.reject(new Error('瀏覽器不支援 IndexedDB'));
       if(dbPromise) return dbPromise;
@@ -514,7 +578,16 @@
       });
       return dbPromise;
     }
-
+      /**
+     * dbPutMeta(meta)
+     * --------------------------------------------------------------------
+     * 用途：將單一檔案的「中繼資料」寫入（新增或覆蓋）META_STORE。
+     *       失敗時直接吞掉錯誤（catch 區塊留空），因為本機快取寫入失敗
+     *       不應該中斷主要流程（資料庫 Supabase 才是真正的資料來源）。
+     * 參數：meta - 物件，需包含 id 屬性作為 key
+     * 回傳：Promise<void>
+     * --------------------------------------------------------------------
+     */
     async function dbPutMeta(meta){
       try{
         const db = await openDB();
@@ -525,6 +598,13 @@
         });
       } catch(err){}
     }
+      /**
+     * dbPutData(data)
+     * --------------------------------------------------------------------
+     * 用途：將單一檔案的「實際列資料」（{ id, rows }）寫入 DATA_STORE。
+     *       與 dbPutMeta 分開呼叫，讓呼叫端可以視需要只更新中繼資料或只更新資料本體。
+     * --------------------------------------------------------------------
+     */
     async function dbPutData(data){
       try{
         const db = await openDB();
@@ -535,6 +615,13 @@
         });
       } catch(err){}
     }
+     /**
+     * dbGetData(id)
+     * --------------------------------------------------------------------
+     * 用途：依 id 從 DATA_STORE 讀出該檔案的實際列資料。
+     * 回傳：Promise，resolve 為 { id, rows } 物件，查無資料或發生錯誤時回傳 null
+     * --------------------------------------------------------------------
+     */
     async function dbGetData(id){
       try{
         const db = await openDB();
@@ -546,6 +633,13 @@
         });
       } catch(err){ return null; }
     }
+    /**
+     * dbDeleteBoth(id)
+     * --------------------------------------------------------------------
+     * 用途：同時從 META_STORE 與 DATA_STORE 刪除同一個 id 的資料，
+     *       用於使用者移除某個已上傳檔案時的本機快取清理。
+     * --------------------------------------------------------------------
+     */
     async function dbDeleteBoth(id){
       try{
         const db = await openDB();
@@ -557,6 +651,15 @@
         });
       } catch(err){}
     }
+    /**
+     * dbLoadAllMeta()
+     * --------------------------------------------------------------------
+     * 用途：讀出 META_STORE 中所有檔案的中繼資料，用於 Worker 初始化時
+     *       還原「上次工作階段」已經上傳過的檔案清單（不含實際列資料，
+     *       列資料採取懶載入，見 ensureRowsLoaded）。
+     * 回傳：Promise<Array> 中繼資料陣列，發生錯誤時回傳空陣列
+     * --------------------------------------------------------------------
+     */
     async function dbLoadAllMeta(){
       try{
         const db = await openDB();
@@ -568,9 +671,28 @@
         });
       } catch(err){ return []; }
     }
-
+    
+    // store：Worker 生命週期內，所有已知檔案的記憶體快取（Map<id, entry>）。
+    // entry 的 rows 欄位在還沒被讀取前會是 null，代表「尚未載入到記憶體」，
+    // 需要透過 ensureRowsLoaded 才會真正把資料補齊（懶載入策略，
+    // 避免一開啟頁面就把所有歷史檔案的完整資料都讀進記憶體）。
     const store = new Map();
 
+       /**
+     * ensureRowsLoaded(entry)
+     * --------------------------------------------------------------------
+     * 用途：確保某個檔案 entry 的 rows（實際列資料）已經載入到記憶體中。
+     *       - 若 entry.rows 已存在則直接回傳（快取命中，不重複載入）。
+     *       - 若 entry 是「遠端檔案」（entry.remote 為 true，代表是開啟頁面時
+     *         從 Supabase 撈回來、本機沒有快取的檔案），則呼叫
+     *         fetchRemoteFileRows 從遠端資料庫抓取列資料。
+     *       - 否則視為本機曾經上傳過的檔案，從 IndexedDB（dbGetData）讀取。
+     *       這是整個懶載入機制的核心函式，之後若要新增第三種資料來源
+     *       （例如另一個雲端服務），可以在這裡加一個新的判斷分支。
+     * 參數：entry - store 中的檔案項目
+     * 回傳：Promise<Array> 該檔案的所有列資料
+     * --------------------------------------------------------------------
+     */
     async function ensureRowsLoaded(entry){
       if(entry.rows) return entry.rows;
       if(entry.remote && entry.dbFileId){
@@ -581,7 +703,18 @@
       entry.rows = (data && data.rows) || [];
       return entry.rows;
     }
-
+     /**
+     * detectItemModel(columns, rows)
+     * --------------------------------------------------------------------
+     * 用途：自動偵測這批資料屬於哪一個「機型」（Item Model），
+     *       做法是找出欄位名稱正規化後等於 'itemmodel' 的那一欄，
+     *       再從資料列中（最多取前 20000 列做抽樣，避免資料量過大時太慢）
+     *       統計每個值出現的次數，回傳出現次數最多的那個值，
+     *       視為這份檔案「主要」代表的機型（用於檔案清單分組顯示）。
+     * 參數：columns - 欄位名稱陣列；rows - 資料列陣列
+     * 回傳：出現次數最多的機型字串；若找不到對應欄位或沒有有效值則回傳 null
+     * --------------------------------------------------------------------
+     */
     function detectItemModel(columns, rows){
       const col = columns.find(c => c.replace(/[\s_-]/g,'').toLowerCase() === 'itemmodel');
       if(!col) return null;
@@ -599,6 +732,10 @@
       return best;
     }
 
+     // DB_COLUMN_MAP：Excel 範本「固定欄位位置」對照表。
+        // 這是給「舊版範本」（沒有標準表頭文字、只認欄位字母位置，例如 A、B、C...）
+        // 使用的對照表，[Excel 欄位字母, 程式內部使用的 camelCase 欄位名稱]。
+        // 之後若範本欄位順序有調整，只需要修改這個陣列即可，不需要動到其他邏輯。
     const DB_COLUMN_MAP = [
       ['A','poNo'],['B','referenceId'],['C','soNoContainerNo'],['D','vessel'],
       ['E','itemModel'],['F','brand'],['G','palletNo'],['H','color'],
@@ -615,10 +752,21 @@
       ['BC','esimIccid'],['BD','imsi'],['BE','simUnlockCode'],
     ];
 
-    // ---------- SUPABASE_URL / SUPABASE_ANON_KEY 由主執行緒透過 postMessage({type:'set-config'}) 傳進來 ----------
+   // ---------- SUPABASE_URL / SUPABASE_ANON_KEY 由主執行緒透過 postMessage({type:'set-config'}) 傳進來 ----------
+    // 說明：Worker 本身無法直接存取頁面的 fetch('/api/config') 結果（其實可以 fetch，
+    // 但這裡設計成由主執行緒統一取得設定後再轉送給 Worker，讓設定來源單一化），
+    // 因此用這兩個模組層級變數暫存，等 'set-config' 訊息進來後才會被賦值。
     let SUPABASE_URL = null;
     let SUPABASE_ANON_KEY = null;
 
+     /**
+     * supabaseHeaders(extra)
+     * --------------------------------------------------------------------
+     * 用途：組出呼叫 Supabase REST API / Storage API 時共用的 HTTP headers
+     *       （apikey、Authorization、Content-Type），並允許額外傳入 extra
+     *       物件覆蓋或補充特定 header（例如 Prefer: return=minimal）。
+     * --------------------------------------------------------------------
+     */
     function supabaseHeaders(extra){
       return Object.assign({
         'apikey': SUPABASE_ANON_KEY,
@@ -627,10 +775,21 @@
       }, extra || {});
     }
 
+
+     /**
+     * genDbId()
+     * --------------------------------------------------------------------
+     * 用途：產生一個「看起來唯一」的字串 ID（時間戳 base36 + 隨機字串），
+     *       用於建立新的 Supabase shipment_files.id / Storage 檔案路徑等場景。
+     * --------------------------------------------------------------------
+     */
     function genDbId(){
       return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
     }
 
+    // CAMEL_TO_SNAKE：程式內部欄位命名（camelCase，例如 poNo）
+    // 對應到 Supabase 資料表欄位命名（snake_case，例如 po_no）的轉換表。
+    // 之後若在資料表新增欄位，記得同時更新這裡、DB_COLUMN_MAP 與 HEADER_NAME_MAP 三處。
     const CAMEL_TO_SNAKE = {
       poNo:'po_no', referenceId:'reference_id', soNoContainerNo:'so_no_container_no', vessel:'vessel',
       itemModel:'item_model', brand:'brand', palletNo:'pallet_no', color:'color',
@@ -646,26 +805,64 @@
       rfidBrand:'rfid_brand', rfidTid:'rfid_tid', pcbMainBoardSn:'pcb_main_board_sn', blePcbSerialNo:'ble_pcb_serial_no', unitRemarks:'unit_remarks',
       esimIccid:'esim_iccid', imsi:'imsi', simUnlockCode:'sim_unlock_code',
     };
-
+    
+    /**
+     * toSnakeCaseFields(rec)
+     * --------------------------------------------------------------------
+     * 用途：把一筆 camelCase 命名的資料紀錄（rec）轉換成 snake_case 命名，
+     *       用於寫入 Supabase 的 shipment_records 資料表（資料庫欄位是 snake_case）。
+     *       任何缺值的欄位會補上 null，避免寫入時欄位缺漏造成不一致。
+     * --------------------------------------------------------------------
+     */
     function toSnakeCaseFields(rec){
       const out = {};
       Object.keys(CAMEL_TO_SNAKE).forEach(camel => { out[CAMEL_TO_SNAKE[camel]] = rec[camel] || null; });
       return out;
     }
 
+     /**
+     * toCsvRow(rec)
+     * --------------------------------------------------------------------
+     * 用途：依照 DB_COLUMN_MAP 規定的欄位順序，把一筆紀錄序列化成一行 CSV 文字，
+     *       並對包含逗號、換行、雙引號的值做正確的 CSV 轉義（外面包雙引號、
+     *       內部雙引號變成兩個雙引號）。這一行 CSV 字串會整個存成
+     *       shipment_records.full_row，作為「還原這筆紀錄原始樣貌」的備份，
+     *       之後要重建成物件時可用 parseCsvRow + csvRowToDisplayRow 還原。
+     * --------------------------------------------------------------------
+     */
     function toCsvRow(rec){
       return DB_COLUMN_MAP.map(([, key]) => {
         const s = String(rec[key] ?? '');
         return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
       }).join(',');
     }
-
+    
+     /**
+     * colLetterToIndex(letter)
+     * --------------------------------------------------------------------
+     * 用途：把 Excel 欄位字母（如 'A'、'Z'、'AA'、'AJ'）轉換成從 0 開始的
+     *       陣列索引（'A' -> 0、'B' -> 1 ... 'AA' -> 26），
+     *       用於配合 sheet_to_json({ header: 1 }) 產生的「以陣列表示每一列」的資料，
+     *       依欄位字母去對應到陣列中的第幾個位置。
+     * --------------------------------------------------------------------
+     */
     function colLetterToIndex(letter){
       let idx = 0;
       for(let i = 0; i < letter.length; i++) idx = idx * 26 + (letter.toUpperCase().charCodeAt(i) - 64);
       return idx - 1;
     }
 
+     /**
+     * buildDbRecords(sheet)
+     * --------------------------------------------------------------------
+     * 用途：針對「固定欄位位置」格式的 Excel 工作表（sheet），依 DB_COLUMN_MAP
+     *       把每一列轉換成一筆物件（key 為 camelCase 欄位名），並過濾掉
+     *       四個唯一碼欄位（imei1 / serialNo / macId / pcbaSn）全部是空值的列
+     *       （代表這一列不是有效的裝置資料，可能是空白列或說明列）。
+     * 參數：sheet - xlsx 套件解析出來的工作表物件
+     * 回傳：Array<Object> 轉換後的紀錄陣列（已過濾無效列）
+     * --------------------------------------------------------------------
+     */
     function buildDbRecords(sheet){
       const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       if(raw.length < 2) return [];
@@ -682,6 +879,17 @@
         .filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
 
+     /**
+     * uploadFileToStorage(fileId, fileName, bytes)
+     * --------------------------------------------------------------------
+     * 用途：把原始檔案的二進位內容（bytes）上傳到 Supabase Storage 的
+     *       'excel-files' bucket，路徑為「fileId/檔名」的形式，讓使用者
+     *       之後可以下載「原始檔案」而不只是解析後的資料。
+     * 參數：fileId - 這份檔案在資料庫中的 id；fileName - 原始檔名；
+     *       bytes - 檔案的二進位資料（Uint8Array）
+     * 回傳：Promise<{ ok:true, path } | { ok:false, error }>
+     * --------------------------------------------------------------------
+     */
     async function uploadFileToStorage(fileId, fileName, bytes){
       const path = fileId + '/' + encodeURIComponent(fileName);
       try{
@@ -705,6 +913,19 @@
       }
     }
 
+      /**
+     * deleteFromDatabase(dbFileId, storagePath, sourceFileName)
+     * --------------------------------------------------------------------
+     * 用途：使用者移除某個檔案時，連同 Supabase 端的資料一起清除，包含：
+     *       1) shipment_files 資料表中對應的那一筆檔案紀錄
+     *          （若有 dbFileId 就用 id 刪除，否則退回用 sourceFileName 比對檔名刪除，
+     *           這是為了相容「本機知道檔名但當初沒有成功寫入 dbFileId」的情況）
+     *       2) Storage 中對應的原始檔案物件（storagePath）
+     *       所有步驟即使個別失敗也會繼續嘗試其他步驟，最後把所有錯誤訊息
+     *       彙整成一個陣列一起回報，避免其中一步失敗就整個中斷。
+     * 回傳：Promise<{ ok:true } | { ok:false, error }>（error 為合併後的錯誤訊息字串）
+     * --------------------------------------------------------------------
+     */
     async function deleteFromDatabase(dbFileId, storagePath, sourceFileName){
       const errors = [];
       if(dbFileId){
@@ -742,6 +963,23 @@
       return errors.length ? { ok:false, error: errors.join('；') } : { ok:true };
     }
 
+    /**
+     * saveToDatabase(sourceFileName, sheetName, model, dbRecords, storagePath, fileId)
+     * --------------------------------------------------------------------
+     * 用途：把解析後的資料紀錄寫入 Supabase：
+     *       1) 先在 shipment_files 建立一筆「檔案主檔」紀錄（檔名、機型、列數、
+     *          Storage 路徑等中繼資訊）
+     *       2) 再把每一筆資料紀錄轉換成 snake_case 並分批（每批 BATCH_SIZE=500 筆）
+     *          寫入 shipment_records，避免單次請求資料量過大失敗或逾時
+     *       3) 若任何一批寫入失敗，會嘗試把剛剛建立的 shipment_files 主檔紀錄
+     *          刪除（回滾），避免留下「有檔案主檔、但沒有對應資料列」的孤兒紀錄
+     * 參數：sourceFileName - 原始檔名；sheetName - 工作表名稱；model - 偵測到的機型；
+     *       dbRecords - 已轉換好的紀錄陣列；storagePath - Storage 中的原始檔路徑（可為 null）；
+     *       fileId - 若外部已經先產生好 id 則沿用，否則內部會呼叫 genDbId() 產生新的
+     * 回傳：Promise<{ attempted:false } | { attempted:true, ok, error?, rowCount?, fileId? }>
+     *       attempted:false 代表「根本沒有要寫入的資料」，呼叫端可依此判斷不算失敗
+     * --------------------------------------------------------------------
+     */
     async function saveToDatabase(sourceFileName, sheetName, model, dbRecords, storagePath, fileId){
       if(!dbRecords.length) return { attempted:false };
       fileId = fileId || genDbId();
@@ -784,6 +1022,10 @@
       }
     }
 
+     // HEADER_NAME_MAP：另一種 Excel 範本格式使用的對照表 —— 依「表頭文字」
+    // （例如 'PO No.'、'Item Model'）對應到程式內部 camelCase 欄位名，
+    // 與 DB_COLUMN_MAP（依欄位字母位置）是兩種不同的辨識方式，
+    // 用於當範本有標準表頭文字、但欄位順序不固定時的解析（見 buildDbRecordsFromParsedRows）。
     const HEADER_NAME_MAP = {
       'PO No.':'poNo', 'Reference ID':'referenceId', 'SO No./Container No.':'soNoContainerNo', 'Vessel':'vessel',
       'Item Model':'itemModel', 'Brand':'brand', 'Pallet No.':'palletNo', 'Color':'color',
@@ -801,6 +1043,17 @@
       'Unit Remarks':'unitRemarks', 'eSIM ICCID':'esimIccid', 'IMSI':'imsi', 'SIM Unlock Code':'simUnlockCode',
     };
 
+     /**
+     * buildDbRecordsFromParsedRows(rows)
+     * --------------------------------------------------------------------
+     * 用途：把「已經用表頭文字解析成物件」的資料列（例如 sheet_to_json 預設
+     *       用第一列當 key 產生的物件陣列），依 HEADER_NAME_MAP 轉換成
+     *       程式內部 camelCase 欄位名稱的紀錄，並同樣過濾掉四個唯一碼欄位
+     *       都是空值的無效列。這個函式主要用在「同步既有檔案到資料庫」
+     *       （sync-to-db，見下方訊息處理區塊）的情境，因為此時資料已經是
+     *       用 csvRowToDisplayRow 還原成「表頭文字為 key」的物件了。
+     * --------------------------------------------------------------------
+     */
     function buildDbRecordsFromParsedRows(rows){
       return rows.map(row => {
         const rec = {};
@@ -813,10 +1066,24 @@
       }).filter(rec => rec.imei1 || rec.serialNo || rec.macId || rec.pcbaSn);
     }
 
+     // CAMEL_TO_HEADER / HEADERS_IN_DB_ORDER：由 HEADER_NAME_MAP 反向推導出來的
+    // 對照表與「依 DB_COLUMN_MAP 順序排列的表頭文字陣列」，
+    // 用於把資料庫存的 CSV（欄位順序固定為 DB_COLUMN_MAP 的順序）
+    // 還原成畫面上要顯示的「以表頭文字為 key」的物件（見 csvRowToDisplayRow）。
     const CAMEL_TO_HEADER = {};
     Object.keys(HEADER_NAME_MAP).forEach(header => { CAMEL_TO_HEADER[HEADER_NAME_MAP[header]] = header; });
     const HEADERS_IN_DB_ORDER = DB_COLUMN_MAP.map(([, camelKey]) => CAMEL_TO_HEADER[camelKey] || camelKey);
 
+    /**
+     * parseCsvRow(csvText)
+     * --------------------------------------------------------------------
+     * 用途：手寫的簡易 CSV 單行解析器（逐字元掃描的狀態機），
+     *       支援欄位內含逗號、換行、以及用兩個雙引號表示一個雙引號的轉義規則，
+     *       用於還原 toCsvRow() 產生、存進 shipment_records.full_row 的那一行文字。
+     * 參數：csvText - 一行 CSV 文字
+     * 回傳：Array<string> 該行各欄位的原始值
+     * --------------------------------------------------------------------
+     */
     function parseCsvRow(csvText){
       const result = [];
       let cur = '';
@@ -839,6 +1106,15 @@
       return result;
     }
 
+    /**
+     * csvRowToDisplayRow(csvText)
+     * --------------------------------------------------------------------
+     * 用途：把 parseCsvRow 解析出來的「依 DB_COLUMN_MAP 順序排列的值陣列」，
+     *       依 HEADERS_IN_DB_ORDER 對應的表頭文字，重新組成一個
+     *       「以表頭文字為 key」的物件，讓畫面上顯示遠端資料時，
+     *       欄位名稱能跟本機上傳解析出來的資料格式一致（都是表頭文字 key）。
+     * --------------------------------------------------------------------
+     */
     function csvRowToDisplayRow(csvText){
       const values = parseCsvRow(csvText);
       const row = {};
@@ -846,6 +1122,16 @@
       return row;
     }
 
+    /**
+     * fetchRemoteFilesList()
+     * --------------------------------------------------------------------
+     * 用途：向 Supabase 查詢 shipment_files 資料表的所有檔案主檔紀錄
+     *       （最多 1000 筆，依上傳時間 uploaded_at 由舊到新排序），
+     *       用於 Worker 初始化時，把「本機沒有快取、但資料庫已經存在」的檔案
+     *       也補進畫面的檔案清單中（見 self.onmessage 的 'init' 處理）。
+     * 回傳：Promise<{ ok:boolean, files:Array }>（失敗時 ok:false、files 為空陣列）
+     * --------------------------------------------------------------------
+     */
     async function fetchRemoteFilesList(){
       try{
         const res = await fetch(SUPABASE_URL + '/rest/v1/shipment_files?select=*&order=uploaded_at.asc&limit=1000', {
@@ -855,7 +1141,16 @@
         return { ok:true, files: await res.json() };
       } catch(err){ return { ok:false, files: [] }; }
     }
-
+    /**
+     * fetchRemoteFileRows(dbFileId)
+     * --------------------------------------------------------------------
+     * 用途：依檔案的資料庫 id（dbFileId），從 shipment_records 撈出該檔案
+     *       所有列的 full_row（CSV 文字），依 row_index 由小到大排序（最多
+     *       撈 100000 列），再逐筆用 csvRowToDisplayRow 還原成物件，
+     *       用於 ensureRowsLoaded 對「遠端檔案」做懶載入。
+     * 回傳：Promise<Array<Object>>（失敗時回傳空陣列）
+     * --------------------------------------------------------------------
+     */
     async function fetchRemoteFileRows(dbFileId){
       try{
         const res = await fetch(
@@ -868,6 +1163,15 @@
       } catch(err){ return []; }
     }
 
+     /**
+     * fileMetaOf(entry)
+     * --------------------------------------------------------------------
+     * 用途：把 store 中完整的內部 entry（含 rows 等大量資料）裁剪成
+     *       「只給主執行緒用來顯示畫面的精簡中繼資料」，避免透過
+     *       postMessage 把整份大資料（rows）不必要地傳輸給主執行緒，
+     *       節省序列化與傳輸成本。
+     * --------------------------------------------------------------------
+     */
     function fileMetaOf(entry){
       return {
         id: entry.id, name: entry.name, rowCount: entry.rowCount, columnCount: entry.columns.length,
@@ -876,12 +1180,45 @@
         remote: !!entry.remote,
       };
     }
+
+    /**
+     * allColumns()
+     * --------------------------------------------------------------------
+     * 用途：彙整目前 store 中所有檔案出現過的欄位名稱，合併成一份「不重複、
+     *       依第一次出現順序排列」的欄位清單，用於主執行緒畫面上「比對欄位」
+     *       下拉選單的選項來源（多個檔案欄位可能不完全相同，需要取聯集）。
+     * --------------------------------------------------------------------
+     */
     function allColumns(){
       const seen = new Set(); const cols = [];
       store.forEach(entry => entry.columns.forEach(c => { if(!seen.has(c)){ seen.add(c); cols.push(c); } }));
       return cols;
     }
 
+      /**
+     * self.onmessage
+     * --------------------------------------------------------------------
+     * 用途：Web Worker 的訊息路由中心，依主執行緒傳來的 msg.type 分派到
+     *       對應的處理邏輯，處理完畢後用 self.postMessage 把結果（連同
+     *       原始的 msg.reqId，讓主執行緒能對應到是哪一次呼叫的回覆）送回去。
+     *       支援的 msg.type 說明：
+     *         - 'set-config'：主執行緒傳入 Supabase 連線設定（一定是第一則訊息，
+     *            且不需要回覆，因為呼叫端 createWorker() 時是用 fire-and-forget
+     *            的方式送出，沒有註冊對應的 pending Promise）
+     *         - 'init'：初始化，讀出本機 IndexedDB 快取的檔案清單，
+     *            並嘗試連線 Supabase 補上遠端才有的檔案
+     *         - 'parse'：解析使用者剛上傳的一個新檔案（Excel/CSV），
+     *            同時嘗試把原始檔上傳到 Storage、把資料寫入資料庫
+     *         - 'sync-to-db'：把一個「本機已有、但尚未成功寫入資料庫」的檔案
+     *            重新嘗試同步到 Supabase
+     *         - 'remove'：使用者移除某個檔案（本機快取 + 遠端資料庫都清除）
+     *         - 'get-file-data'：取得某個檔案的完整資料（用於 JSON 檢視 Modal）
+     *         - 'test-api'：測試與 Supabase 的連線是否正常
+     *         - 'compare'：執行「橫排 / 直排 / 兩者」重複值比對演算法
+     *       若處理過程中丟出未預期的例外，會被最外層 try/catch 攔截，
+     *       統一以 { type:'error' } 回報，避免整個 Worker 因未捕捉的例外而中斷。
+     * --------------------------------------------------------------------
+     */
     self.onmessage = async function(e){
       const msg = e.data;
 
@@ -1076,12 +1413,28 @@
   `;
 
   // ================= 主執行緒（負責先跟後端要 config，再建立 Worker 並把 config 傳進去）=================
+  // worker：目前使用中的 Web Worker 實例（延遲建立，第一次呼叫 getWorker() 時才會真正建立）
+  // reqCounter / pending：workerCall() 用來把「非同步的 postMessage 通訊」包裝成 Promise 的機制。
+  // 每次呼叫會產生一個遞增的 reqId，並把對應的 { resolve, reject } 存進 pending Map，
+  // 等 Worker 回覆帶著同一個 reqId 的訊息時，才從 pending 中找出對應的 Promise 並 resolve/reject。
   let worker = null;
   let reqCounter = 0;
   const pending = new Map();
   let appConfig = null;
   let configPromiseMain = null;
 
+    /**
+   * loadAppConfig()
+   * ----------------------------------------------------------------------
+   * 用途：向後端 API（/api/config）取得 Supabase 連線設定（URL 與匿名金鑰），
+   *       並用 appConfig 快取結果（同一頁面只會真正打一次 API），
+   *       用 configPromiseMain 避免短時間內重複呼叫時發出多個重複請求
+   *       （多個呼叫端會共用同一個尚在進行中的 Promise）。
+   *       若取得的設定不完整（缺少 supabaseUrl 或 supabaseAnonKey），
+   *       會拋出錯誤，並清空 configPromiseMain，讓下次呼叫可以重試。
+   * 回傳：Promise<{ supabaseUrl, supabaseAnonKey, ... }>
+   * ----------------------------------------------------------------------
+   */
   function loadAppConfig(){
     if(appConfig) return Promise.resolve(appConfig);
     if(!configPromiseMain){
@@ -1101,7 +1454,20 @@
     }
     return configPromiseMain;
   }
-
+  
+  /**
+   * createWorker()
+   * ----------------------------------------------------------------------
+   * 用途：把 WORKER_SRC 字串包成 Blob，用 URL.createObjectURL 產生一個
+   *       暫時的 URL 來建立 Worker（不需要另外部署實體 .js 檔案）。
+   *       同時掛上：
+   *         - onmessage：依 msg.reqId 找出 pending 中對應的 Promise 並解析，
+   *           若訊息 type 以 '-err' 結尾或等於 'error' 則視為失敗（reject）
+   *         - onerror：Worker 本身發生未捕捉例外時，把所有還在等待中的
+   *           pending Promise 全部 reject（避免呼叫端永遠卡住等不到回應）
+   * 回傳：Worker 實例
+   * ----------------------------------------------------------------------
+   */
   function createWorker(){
     const blob = new Blob([WORKER_SRC], { type: 'application/javascript' });
     const w = new Worker(URL.createObjectURL(blob));
@@ -1119,7 +1485,16 @@
     };
     return w;
   }
-
+  /**
+   * getWorker()
+   * ----------------------------------------------------------------------
+   * 用途：取得目前的 Worker 實例，若尚未建立過，會先確保設定已載入
+   *       （loadAppConfig），再建立 Worker 並立刻送出 'set-config' 訊息，
+   *       確保 Worker 一定會在處理任何實際任務之前就已經拿到連線設定。
+   *       之後每次呼叫都會回傳同一個 Worker 實例（單例模式）。
+   * 回傳：Promise<Worker>
+   * ----------------------------------------------------------------------
+   */
   async function getWorker(){
     const cfg = await loadAppConfig();
     if(!worker){
@@ -1129,6 +1504,22 @@
     return worker;
   }
 
+  /**
+   * workerCall(payload, transfer)
+   * ----------------------------------------------------------------------
+   * 用途：把「主執行緒 <-> Worker」之間以 postMessage 為基礎的非同步通訊，
+   *       包裝成一般的 Promise 介面，讓呼叫端可以直接 `await workerCall(...)`
+   *       而不需要自己處理 onmessage 事件比對。
+   *       實際做法：產生一個新的 reqId，把 { resolve, reject } 存進 pending，
+   *       再把 payload 連同 reqId 一起 postMessage 給 Worker
+   *       （之後 Worker 回覆時會帶著同一個 reqId，讓 createWorker 裡的
+   *       onmessage 能找到對應的 Promise 來解析）。
+   * 參數：payload - 要送給 Worker 的訊息物件（需包含 type）；
+   *       transfer - 可選，需要用 Transferable 方式轉移的物件陣列（例如 ArrayBuffer，
+   *                  避免大檔案內容被複製一份，改用轉移所有權的方式加快效能）
+   * 回傳：Promise，resolve 為 Worker 回覆的完整訊息物件
+   * ----------------------------------------------------------------------
+   */
   function workerCall(payload, transfer){
     return new Promise((resolve, reject) => {
       getWorker().then(w => {
@@ -1142,12 +1533,27 @@
   // ================= 資料庫連線狀態 =================
   const apiStatusDot = document.getElementById('apiStatusDot');
   const apiStatusText = document.getElementById('apiStatusText');
-
+    /**
+   * setStatusBar(state, text)
+   * ----------------------------------------------------------------------
+   * 用途：更新畫面上方「資料庫連線狀態」小圓點與文字說明。
+   * 參數：state - 'pending' | 'ok' | 'bad'（或空字串），會對應到不同的 CSS 樣式（顏色）；
+   *       text - 要顯示的說明文字
+   * ----------------------------------------------------------------------
+   */
   function setStatusBar(state, text){
     apiStatusDot.className = 'dot' + (state ? ' ' + state : '');
     apiStatusText.textContent = text;
   }
-
+ /**
+   * testApiConnection()
+   * ----------------------------------------------------------------------
+   * 用途：呼叫 Worker 的 'test-api' 訊息，測試目前的 Supabase 連線是否正常，
+   *       並依結果更新畫面上的連線狀態列（呼叫中顯示「測試中」，
+   *       成功顯示「連線成功」，失敗顯示錯誤訊息）。
+   * 回傳：Promise<boolean> 連線是否成功
+   * ----------------------------------------------------------------------
+   */
   async function testApiConnection(){
     setStatusBar('pending', '資料庫連線：測試中…');
     try{
@@ -1163,7 +1569,12 @@
     }
   }
 
-  // ================= 主執行緒狀態 =================
+   // ================= 主執行緒狀態 =================
+  // fileMeta：目前畫面上已知的所有檔案精簡中繼資料（陣列，對應 Worker 端的 fileMetaOf 結果）
+  // cachedColumns：目前所有檔案欄位的聯集（用於比對欄位下拉選單選項）
+  // expandedGroups：已被使用者按下「顯示全部」展開的檔案分組名稱集合
+  // openGroups：目前呈現「展開」狀態（未收合）的檔案分組名稱集合
+  // GROUP_INITIAL_SHOW：每個分組預設最多顯示幾個檔案，超過才顯示「顯示全部」按鈕
   let fileMeta = [];
   let cachedColumns = [];
   const expandedGroups = new Set();
@@ -1172,7 +1583,16 @@
 
   const compareFieldsList = document.getElementById('compareFieldsList');
   const compareCountInput = document.getElementById('compareCount');
-
+  /**
+   * makeCompareRow(index)
+   * ----------------------------------------------------------------------
+   * 用途：建立一列「比對欄位 N」的 UI（一個標籤 + 一個下拉選單），
+   *       用於動態產生使用者可以選擇要比對的欄位列表。
+   * 參數：index - 這一列的序號（從 0 開始），會顯示成「比對欄位 index+1」，
+   *       並記錄在 <select> 的 dataset.index 上，方便後續識別
+   * 回傳：HTMLDivElement（尚未插入 DOM，需由呼叫端自行 appendChild）
+   * ----------------------------------------------------------------------
+   */
   function makeCompareRow(index){
     const row = document.createElement('div');
     row.className = 'compare-field-row';
@@ -1186,7 +1606,14 @@
     row.appendChild(sel);
     return row;
   }
-
+ /**
+   * syncCompareFields(count)
+   * ----------------------------------------------------------------------
+   * 用途：把目前畫面上「比對欄位」的列數，調整到使用者輸入的 count 個
+   *       （新增不足的列，或移除多餘的列），並在調整完畢後重新整理
+   *       每一列下拉選單的選項內容（refreshCompareFieldOptions）。
+   * ----------------------------------------------------------------------
+   */
   function syncCompareFields(count){
     const rows = compareFieldsList.querySelectorAll('.compare-field-row');
     if(count > rows.length){
@@ -1196,6 +1623,10 @@
     }
     refreshCompareFieldOptions();
   }
+  
+    // DEFAULT_COMPARE_FIELDS：當使用者第一次上傳檔案、下拉選單從「無選項」變成
+  // 「有選項」時，依序自動預選的預設比對欄位（依常見的唯一碼欄位排列），
+  // 讓使用者不用每次都要手動一個一個選好比對欄位。
 
   const DEFAULT_COMPARE_FIELDS = [
     'IMEI1', 'Serial No.', 'MAC ID', 'Battery SN', 'PCBA SN',
