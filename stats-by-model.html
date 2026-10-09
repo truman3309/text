@@ -8,84 +8,212 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#F3F5F4; --paper-line: rgba(43,88,118,0.09); --ink:#1B232B;
-    --steel:#2B5876; --steel-dark:#1F425B; --steel-tint: rgba(43,88,118,0.07);
-    --brass:#B8862E; --brass-tint: rgba(184,134,46,0.12);
-    --muted:#6B7780; --success:#3F7A5C; --success-tint: rgba(63,122,92,0.10);
-    --danger:#A8482F; --border:#D7DDE0; --card-bg:#FFFFFF;
+    color-scheme:dark;
+
+    --ink:#F5F5F7;
+    --muted:rgba(245,245,247,0.60);
+
+    --steel:#64B5FF;
+    --steel-dark:#8CC8FF;
+    --steel-solid:#0A84FF;
+    --steel-tint:rgba(100,181,255,0.16);
+    --brass:#FFB84D;
+    --brass-tint:rgba(255,159,10,0.20);
+    --success:#5CE07F;
+    --success-tint:rgba(48,209,88,0.20);
+    --danger:#FF6B61;
+    --danger-tint:rgba(255,69,58,0.20);
+
+    --bg-a:#14171E;
+    --bg-b:#191C26;
+    --bg-c:#1F1B26;
+    --orb-1:rgba(90,110,160,0.22);
+    --orb-2:rgba(70,120,150,0.18);
+
+    --glass:        rgba(30,30,40,0.50);
+    --glass-field:  rgba(255,255,255,0.07);
+    --glass-field-2:rgba(255,255,255,0.12);
+    --glass-border: rgba(255,255,255,0.14);
+    --glass-hi:     rgba(255,255,255,0.10);
+    --glass-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    --hairline:     rgba(255,255,255,0.10);
+    --blur:         blur(24px) saturate(160%);
+
+    --paper:#14171E;
+    --card-bg:rgba(30,30,40,0.50);
+    --border:rgba(255,255,255,0.14);
+
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang TC","Noto Sans TC","Helvetica Neue",sans-serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   }
+
   *{box-sizing:border-box;}
+  html{ background:var(--bg-b); }
   body{
-    margin:0; background-color:var(--paper);
-    background-image:
-      repeating-linear-gradient(to right, var(--paper-line) 0 1px, transparent 1px 28px),
-      repeating-linear-gradient(to bottom, var(--paper-line) 0 1px, transparent 1px 28px);
-    color:var(--ink); font-family:'IBM Plex Sans', system-ui, sans-serif;
-    min-height:100vh; padding:40px 20px 80px;
+    margin:0;
+    background:linear-gradient(135deg, var(--bg-a) 0%, var(--bg-b) 48%, var(--bg-c) 100%) fixed;
+    color:var(--ink);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding:32px 20px 96px;
+    position:relative;
+    overflow-x:hidden;
   }
-  .wrap{ max-width:900px; margin:0 auto; }
-  .site-nav{ display:flex; gap:4px; margin-bottom:24px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  body::before, body::after{
+    content:''; position:fixed; border-radius:50%; filter:blur(70px);
+    pointer-events:none; z-index:0;
+  }
+  body::before{ width:420px; height:420px; background:var(--orb-1); top:-120px; right:-100px; }
+  body::after{ width:480px; height:480px; background:var(--orb-2); bottom:-160px; left:-140px; }
+  .wrap{ max-width:960px; margin:0 auto; position:relative; z-index:1; }
+
+  /* ---------- 玻璃共用質感（只套在外層大元素）---------- */
+  .panel,
+  .site-nav,
+  .api-status-bar{
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    -webkit-backdrop-filter:var(--blur);
+    backdrop-filter:var(--blur);
+    box-shadow:var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  }
+
+  /* ---------- 導覽列 ---------- */
+  .site-nav{
+    display:inline-flex; gap:2px; padding:4px; margin-bottom:36px; flex-wrap:wrap;
+    border-radius:980px;
+  }
   .site-nav-link{
-    font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; letter-spacing:.02em;
-    color:var(--muted); text-decoration:none; padding:9px 14px; border-bottom:2px solid transparent;
-    transition:color .15s, border-color .15s; margin-bottom:-1px;
+    font-size:13px; font-weight:500; color:var(--ink); text-decoration:none;
+    padding:7px 16px; border-radius:980px; border:none; margin:0;
+    transition:background .2s, box-shadow .2s, color .2s;
   }
   .site-nav-link:hover{ color:var(--steel); }
-  .site-nav-link.active{ color:var(--steel); border-bottom-color:var(--steel); }
-  header{ margin-bottom:26px; }
+  .site-nav-link.active{
+    background:rgba(24,24,34,0.92); color:var(--ink);
+    box-shadow:0 1px 4px rgba(0,0,0,0.4), inset 0 1px 0 var(--glass-hi);
+  }
+
+  /* ---------- 標題 ---------- */
+  header{ margin-bottom:28px; }
   .eyebrow{
-    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.22em; font-weight:600;
-    color:var(--steel); text-transform:uppercase; display:flex; align-items:center; gap:10px; margin-bottom:10px;
+    font-size:13px; font-weight:600; letter-spacing:0; color:var(--steel);
+    text-transform:none; display:block; margin-bottom:6px;
   }
-  .eyebrow::before{ content:''; width:22px; height:1px; background:var(--steel); display:inline-block; }
-  h1{ font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:clamp(26px,4vw,36px); margin:0 0 8px; letter-spacing:-0.01em; }
-  header p{ margin:0; color:var(--muted); font-size:14px; max-width:640px; line-height:1.6; }
+  .eyebrow::before{ display:none; }
+  h1{
+    font-family:var(--font); font-weight:700; color:var(--ink);
+    font-size:clamp(30px,5vw,46px); letter-spacing:-0.03em; line-height:1.08;
+    margin:0 0 12px;
+  }
+  header p{ margin:0; color:var(--muted); font-size:15px; max-width:680px; line-height:1.7; }
 
+  /* ---------- 狀態列 ---------- */
   .api-status-bar{
-    display:flex; align-items:center; gap:8px; padding:8px 4px; margin-bottom:20px;
-    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted);
+    display:inline-flex; align-items:center; gap:8px; padding:7px 14px; margin-bottom:20px;
+    font-size:12.5px; color:var(--muted); border-radius:980px;
   }
-  .dot{ width:6px; height:6px; border-radius:50%; background:var(--muted); flex-shrink:0; }
-  .dot.ok{ background:var(--success); } .dot.bad{ background:var(--danger); } .dot.pending{ background:var(--steel); }
+  .dot{ width:8px; height:8px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+  .dot.ok{ background:#30D158; box-shadow:0 0 8px rgba(48,209,88,0.7); }
+  .dot.bad{ background:#FF453A; box-shadow:0 0 8px rgba(255,69,58,0.7); }
+  .dot.pending{ background:#FF9F0A; box-shadow:0 0 8px rgba(255,159,10,0.7); }
 
-  .panel{ background:var(--card-bg); border:1px solid var(--border); border-radius:2px; box-shadow:0 1px 0 rgba(27,35,43,0.03); }
+  /* ---------- 主卡片 ---------- */
+  .panel{ border-radius:28px; overflow:hidden; }
 
-  .summary-row{ display:flex; gap:28px; padding:20px 22px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-  .summary-stat{ font-family:'IBM Plex Mono',monospace; }
-  .summary-stat .label{ font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
-  .summary-stat .value{ font-size:22px; font-weight:700; color:var(--ink); }
-  .summary-stat .value span{ font-size:12px; color:var(--muted); font-weight:500; }
+  .summary-row{ display:flex; gap:40px; padding:24px 26px; border-bottom:1px solid var(--hairline); flex-wrap:wrap; }
+  .summary-stat .label{ font-size:12.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--muted); margin-bottom:6px; }
+  .summary-stat .value{
+    font-size:30px; font-weight:700; letter-spacing:-0.02em; color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .summary-stat .value span{ font-size:14px; color:var(--muted); font-weight:500; letter-spacing:0; }
 
-  .toolbar{ display:flex; justify-content:space-between; align-items:center; padding:14px 22px; gap:12px; flex-wrap:wrap; border-bottom:1px solid var(--border); }
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; padding:16px 26px; gap:10px; flex-wrap:wrap; border-bottom:1px solid var(--hairline); }
   .search-box{
-    flex:1; min-width:180px; padding:8px 11px; border:1px solid var(--border); border-radius:2px;
-    font-size:13.5px; font-family:'IBM Plex Sans',sans-serif;
+    flex:1; min-width:180px; padding:9px 16px; font-size:14px;
+    font-family:var(--font); color:var(--ink);
+    background:var(--glass-field); border:1px solid var(--glass-border); border-radius:980px; outline:none;
+    transition:border-color .15s, box-shadow .15s, background .15s;
   }
-  .refresh-btn, .export-btn{
-    font-family:'IBM Plex Mono',monospace; font-size:12.5px; font-weight:600; letter-spacing:.03em;
-    background:none; border:1px solid var(--steel); color:var(--steel); padding:8px 16px;
-    border-radius:2px; cursor:pointer; white-space:nowrap;
-  }
-  .refresh-btn:hover, .export-btn:hover{ background:var(--steel); color:#fff; }
+  .search-box::placeholder{ color:var(--muted); }
+  .search-box:focus{ border-color:var(--steel); box-shadow:0 0 0 4px var(--steel-tint); background:var(--glass-field-2); }
 
+  .refresh-btn, .export-btn{
+    font-family:var(--font); font-weight:500; font-size:14px;
+    border:1px solid var(--glass-border); background:var(--glass-field); color:var(--steel);
+    padding:9px 18px; border-radius:980px; cursor:pointer; white-space:nowrap;
+    transition:background .15s, color .15s, transform .1s;
+  }
+  .refresh-btn:hover, .export-btn:hover{ background:var(--steel-solid); color:#fff; border-color:transparent; }
+  .refresh-btn:active, .export-btn:active{ transform:scale(0.97); }
+
+  /* ---------- 機種清單與長條 ---------- */
   .model-list{ padding:8px 0; }
   .model-row{
-    display:grid; grid-template-columns:180px 1fr 90px; align-items:center; gap:14px;
-    padding:10px 22px; border-bottom:1px solid #EEF0F1;
+    display:grid; grid-template-columns:200px 1fr 100px; align-items:center; gap:16px;
+    padding:13px 26px; border-bottom:1px solid var(--hairline);
+    transition:background .12s;
   }
+  .model-row:hover{ background:rgba(255,255,255,0.045); }
   .model-row:last-child{ border-bottom:none; }
-  .model-name{ font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; word-break:break-all; }
-  .model-bar-track{ height:16px; background:#EDEFF0; border-radius:1px; overflow:hidden; position:relative; }
-  .model-bar-fill{ height:100%; background:var(--steel); border-radius:1px; transition:width .4s ease; }
-  .model-qty{ font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:700; text-align:right; color:var(--ink); }
-  .model-qty span{ font-size:10.5px; color:var(--muted); font-weight:500; }
+  .model-name{ font-family:var(--mono); font-size:13.5px; font-weight:600; word-break:break-all; color:var(--ink); }
+  .model-bar-track{
+    height:10px; background:var(--glass-field); border:1px solid var(--glass-border);
+    border-radius:980px; overflow:hidden; position:relative;
+  }
+  .model-bar-fill{
+    height:100%; border-radius:980px;
+    background:linear-gradient(90deg,#0A84FF,#64B5FF);
+    box-shadow:0 0 12px rgba(100,181,255,0.45);
+    transition:width .5s cubic-bezier(.2,.8,.2,1);
+  }
+  .model-qty{
+    font-size:15px; font-weight:700; text-align:right; color:var(--brass);
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .model-qty span{ font-size:12px; color:var(--muted); font-weight:500; }
 
-  .empty-state, .loading-state{ padding:60px 20px; text-align:center; color:var(--muted); font-size:14px; }
-  .loading-state .big, .empty-state .big{ font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--ink); margin-bottom:6px; }
-  .error-msg{ color:var(--danger); font-size:13px; padding:14px 22px; font-family:'IBM Plex Mono',monospace; white-space:pre-line; }
+  /* 前三名的長條換成綠色，一眼看出主力機種 */
+  .model-row:nth-child(1) .model-bar-fill,
+  .model-row:nth-child(2) .model-bar-fill,
+  .model-row:nth-child(3) .model-bar-fill{
+    background:linear-gradient(90deg,#30D158,#66E38A);
+    box-shadow:0 0 12px rgba(48,209,88,0.45);
+  }
 
+  .empty-state, .loading-state{ padding:64px 20px; text-align:center; color:var(--muted); font-size:14px; }
+  .loading-state .big, .empty-state .big{ font-size:18px; font-weight:600; color:var(--ink); margin-bottom:8px; }
+  .error-msg{ color:var(--danger); font-size:13.5px; padding:16px 26px; white-space:pre-line; line-height:1.6; }
+
+  /* ---------- 捲軸 ---------- */
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb{
+    background:rgba(235,235,245,0.26); border-radius:980px;
+    border:2px solid transparent; background-clip:content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover{ background:rgba(235,235,245,0.40); background-clip:content-box; border:2px solid transparent; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::selection{ background:rgba(100,181,255,0.40); color:#fff; }
+
+  /* ---------- 不支援 backdrop-filter 的瀏覽器 ---------- */
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    :root{ --glass:rgba(30,31,42,0.94); }
+  }
+
+  /* ---------- 減少動態效果 ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+  }
+
+  /* ---------- 響應式 ---------- */
   @media (max-width:600px){
-    .model-row{ grid-template-columns:1fr; gap:6px; }
+    body{ padding:20px 14px 64px; }
+    .panel{ border-radius:22px; }
+    .summary-row{ gap:24px; padding:20px 18px; }
+    .toolbar{ padding:14px 18px; }
+    .model-row{ grid-template-columns:1fr; gap:8px; padding:14px 18px; }
     .model-qty{ text-align:left; }
   }
 </style>
