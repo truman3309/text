@@ -473,10 +473,21 @@
   }
 
   /* ---------- 響應式 ---------- */
-  @media (max-width:900px){
-    .layout{ flex-direction:column; alignt-items:stretch;}
-    .files-panel{ flex:0 0 auto; width:100%; }
-    .files-panel{ flex:0 0 auto; width:100%; }
+    @media (max-width:900px){
+    .layout{
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:stretch !important;
+    }
+    .main-panel,
+    .files-panel{
+      flex:0 0 auto !important;
+      width:100% !important;
+      height:auto !important;
+      max-height:none !important;
+      overflow:visible !important;
+    }
+    .files-list{ max-height:60vh; overflow-y:auto; overscroll-behavior:contain; }
   }
   @media (max-width:640px){
     body{ padding:20px 14px 64px; }
