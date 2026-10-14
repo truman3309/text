@@ -535,7 +535,7 @@
 
     const condDesc = conditions.map(([field, value]) => {
       const label = (SEARCH_FIELDS.find(f => f[0] === field) || [, field])[1];
-      return `${label} 包含「${value}」`;
+     return `${escapeHtml(label)} 包含「${escapeHtml(value)}」`;
     }).join('　且　');
 
     let html = `<div class="section-title">符合條件的裝置資料（${condDesc}）<span class="section-count">${rows.length}</span></div>`;
@@ -568,7 +568,7 @@
 
     const conditions = [...conditionsList.querySelectorAll('.condition-row')]
       .map(row => [row.querySelector('.condition-field').value, row.querySelector('.condition-value').value.trim()])
-      .filter(([, value]) => value.length >= 1);
+      .filter(([, value]) => value.length >= 2);
 
     if(!conditions.length){
       errorMsg.style.display = 'block';
