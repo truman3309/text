@@ -494,15 +494,40 @@
       (r.source_file_name || '').toLowerCase().includes(q) || (r.model || '').toLowerCase().includes(q)
     );
   }
+// 搜尋框只允許英文、數字和 ( ) &，且 & 最多一個；空白輸入（清除搜尋）一律允許
+// 回傳錯誤訊息；沒問題就回傳空字串
+function searchError(q){
+  if(q === '') return '';
+  if(!/^[A-Za-z0-9()&]+$/.test(q)) return '搜尋只能輸入英文字母、數字和 ( ) &，不能包含其他符號或空白';
+  if((q.match(/&/g) || []).length > 1) return '搜尋內容裡的 & 最多只能出現一個';
+  return '';
+}
+ // 搜尋框只允許英文、數字和 ( ) &，且 & 最多一個；空白輸入（清除搜尋）一律允許
+// 回傳錯誤訊息；沒問題就回傳空字串
+function renderTables(){
+  const content = document.getElementById('content');
+  const searchQ = document.getElementById('searchBox').value.trim();
+  const errorMsg = document.getElementById('errorMsg');
 
-  function renderTables(){
-    const content = document.getElementById('content');
-    const searchQ = document.getElementById('searchBox').value.trim();
-    const filtered = currentFilteredRows(searchQ);
+  const err = searchError(searchQ);
+  if(err){
+    errorMsg.style.display = 'block';
+    errorMsg.textContent = err;
+    errorMsg.dataset.from = 'search';
+    content.innerHTML = '<div class="empty-state"><div class="big">請修正搜尋內容</div></div>';
+    return;
+  }
+  if(errorMsg.dataset.from === 'search'){
+    errorMsg.style.display = 'none';
+    errorMsg.dataset.from = '';
+  }
 
-    if(searchQ){
-      buildFlatGroups(filtered).forEach(g => expandedModels.add(`${g.year}-${g.month}`));
-    }
+  const filtered = currentFilteredRows(searchQ);
+
+  if(searchQ){
+    buildFlatGroups(filtered).forEach(g => expandedModels.add(`${g.year}-${g.month}`));
+  }
+  // ……後面原本的程式碼不變
 
     const groups = buildFlatGroups(filtered);
     let html = renderFlatGroups(groups);
