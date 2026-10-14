@@ -428,9 +428,9 @@
     const query = input.value.trim();
 
     errorMsg.style.display = 'none';
-    if(query.length < 2){
+    if(query.length < 2 || query.length > 50){
       errorMsg.style.display = 'block';
-      errorMsg.textContent = '請輸入至少 2 個字元再搜尋';
+      errorMsg.textContent = '請輸入 2～50 個字元再搜尋';
       return;
     }
 
