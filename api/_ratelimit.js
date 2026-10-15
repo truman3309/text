@@ -24,7 +24,7 @@ export const RULES = {
   search: [['ip', MIN, 600]],                                      // 搜尋（約每分鐘 50 次搜尋）
   create: [['ip', HOUR, 300]],                                     // 新增檔案
   insert: [['ip', HOUR, 6000]],                                    // 新增資料列（每次 500 筆）
-  delete: [['ip', 10 * MIN, 60], ['ip', HOUR, 200], ['global', DAY, 1000]],
+  delete: [['ip', 10 * MIN, 20], ['ip', HOUR, 50], ['global', DAY, 100]],
   upload: [['ip', HOUR, 300], ['global', DAY, 3000]],              // 上傳原始 Excel
 };
 
