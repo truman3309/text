@@ -47,7 +47,7 @@ export default async function handler(req, res){
   let bytes;
   try{ bytes = await readRaw(req, MAX_BYTES); }
   catch(err){
-    if(err.code === 413) return res.status(413).json({ error: '檔案超過 4MB，原始檔不會保存（資料仍會存進資料庫）' });
+    if(err.code === 413) return res.status(413).json({ error: '檔案超過 10MB，原始檔不會保存（資料仍會存進資料庫）' });
     return res.status(400).json({ error: '讀取上傳內容失敗' });
   }
   if(!bytes.length) return res.status(400).json({ error: '檔案是空的' });
