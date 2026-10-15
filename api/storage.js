@@ -15,7 +15,7 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE ||
   process.env.SUPABASE_SECRET_KEY;
 
-const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024;
 
 // 直接讀原始資料流（不經過 Vercel 的 body 解析，避免二進位被轉碼）
 function readRaw(req, limit){
