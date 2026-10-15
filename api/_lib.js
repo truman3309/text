@@ -1,5 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
+// 只給 /api/health 用來檢查資料庫連線
+const SUPABASE_URL =
+  process.env.SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.POSTGRES_URL_NON_POOLING;
 
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE ||
+  process.env.SUPABASE_SECRET_KEY;
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+
+export { handlePreflight } from './_cors.js';
+
+/*
 // 不同的 Supabase／Vercel 整合方式,自動產生的環境變數名稱不完全一樣，
 // 這裡依序嘗試幾種常見命名，只要其中一組存在就能用，不用每次手動對名字
 const SUPABASE_URL =
@@ -52,4 +67,4 @@ export const FIELD_MAP = [
 
 export function genId(){
   return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-}
+}*/
