@@ -33,16 +33,11 @@
 
 | 方法 | 路徑 | 用途 |
 |---|---|---|
+| POST | `/api/db` | 資料庫轉送（只開放網頁用到的操作，金鑰只在伺服器端） |
+| POST | `/api/storage?path=...` | 原始 Excel 上傳轉送（4MB 以內） |
 | GET | `/api/health` | 確認資料庫連線正常 |
-| GET | `/api/files` | 已上傳檔案清單 |
-| POST | `/api/files` | 上傳一個分頁的資料 |
-| DELETE | `/api/files` | 清空全部 |
-| DELETE | `/api/files/:id` | 刪除單一檔案 |
-| GET | `/api/files/:id/data` | 單一檔案完整資料（查看 JSON 用）|
-| POST | `/api/compare` | 對 9 個唯一碼欄位找出所有重複值 |
-| GET | `/api/stats` | 依機種統計出貨量 |
 
-這些路徑跟之前 Express 版本完全一樣，所以前端的 API 呼叫程式碼不用改，只要換掉「後端 API 網址」這個設定值就好。
+環境變數：`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`（不再需要 `SUPABASE_ANON_KEY`）。
 
 ## 本機測試（選用）
 
