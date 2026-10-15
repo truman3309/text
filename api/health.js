@@ -10,6 +10,7 @@ export default async function handler(req, res){
     console.error(err);
     res.status(503).json({ ok: false });
   }
+}
 /*
 export default async function handler(req, res){
   if(handlePreflight(req, res)) return;
