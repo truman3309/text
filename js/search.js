@@ -2,7 +2,7 @@
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
 
-  // 資料庫一律經過伺服器轉送 /api/db，金鑰只存在 Vercel，瀏覽器（含開發者工具）看不到
+ 
   async function dbCall(op, params){
     const res = await fetch('/api/db', {
       method: 'POST',
@@ -15,7 +15,6 @@
   }
 
 
-  // 修正（CSV/公式注入）：以 = + - @ Tab CR 開頭的值（純數字除外），Excel 開啟時會被當成公式執行，前面加 ' 變成純文字
   function csvCell(v){
     let s = String(v ?? '');
     if(/^[=+\-@\t\r]/.test(s) && !/^[-+]?\d+(\.\d+)?$/.test(s)) s = "'" + s;
@@ -59,8 +58,6 @@
     panel.style.display = 'block';
 
     let html = '';
-
-    // ---- 符合的裝置資料（依欄位分組） ----
     const totalRecordMatches = recordResults.reduce((s, r) => s + r.rows.length, 0);
     html += `<div class="section-title">符合的裝置資料<span class="section-count">${totalRecordMatches}</span></div>`;
     const nonEmpty = recordResults.filter(r => r.rows.length);
@@ -173,8 +170,6 @@
   document.getElementById('addConditionBtn').addEventListener('click', () => {
     conditionsList.appendChild(makeConditionRow());
   });
-
-  // 預設先放一行條件
   conditionsList.appendChild(makeConditionRow());
 
   document.getElementById('advancedToggle').addEventListener('click', () => {
