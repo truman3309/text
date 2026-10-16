@@ -2,7 +2,7 @@
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
 
-  // 資料庫一律經過伺服器轉送 /api/db，金鑰只存在 Vercel，瀏覽器（含開發者工具）看不到
+  
   async function dbCall(op, params){
     const res = await fetch('/api/db', {
       method: 'POST',
@@ -15,7 +15,7 @@
   }
 
 
-  // 修正（CSV/公式注入）：以 = + - @ Tab CR 開頭的值（純數字除外），Excel 開啟時會被當成公式執行，前面加 ' 變成純文字
+  
   function csvCell(v){
     let s = String(v ?? '');
     if(/^[=+\-@\t\r]/.test(s) && !/^[-+]?\d+(\.\d+)?$/.test(s)) s = "'" + s;
@@ -29,13 +29,13 @@
     apiStatusText.textContent = text;
   }
 
-  // 直接查已經在資料庫端算好聚合結果的 view，一次請求就拿到「機種＋數量」，不用整包資料撈回來自己算
+  
   async function fetchModelCounts(){
     const data = await dbCall('modelCounts');
     return data.map(r => [r.model, r.qty]);
   }
 
-  let fullData = []; // [[model, qty], ...]
+  let fullData = []; 
   let maxQty = 0;
 
   function renderList(list){
@@ -88,7 +88,7 @@ const RESULT_SEARCH_ENABLED = false;
     const box = document.getElementById('searchBox');
     box.disabled = true;
     box.title = '搜尋功能目前已關閉';
-    box.placeholder = '目前搜尋功能關閉';   // ← 加這一行
+    box.placeholder = '目前搜尋功能關閉'; 
   }
   let searchDebounceTimer = null;
   document.getElementById('searchBox').addEventListener('input', (e) => {
