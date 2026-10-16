@@ -2,7 +2,6 @@
     return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
   }
 
-  // 資料庫一律經過伺服器轉送 /api/db，金鑰只存在 Vercel，瀏覽器（含開發者工具）看不到
   async function dbCall(op, params){
     const res = await fetch('/api/db', {
       method: 'POST',
@@ -15,7 +14,6 @@
   }
 
 
-  // 修正（CSV/公式注入）：以 = + - @ Tab CR 開頭的值（純數字除外），Excel 開啟時會被當成公式執行，前面加 ' 變成純文字
   function csvCell(v){
     let s = String(v ?? '');
     if(/^[=+\-@\t\r]/.test(s) && !/^[-+]?\d+(\.\d+)?$/.test(s)) s = "'" + s;
@@ -85,15 +83,13 @@
     return `${y}-${m}-${day}`;
   }
 
-  let fullRows = []; // 已解析出日期的明細（每筆一個檔案）
-  let unparsedRows = []; // 解析不出日期的
+  let fullRows = []; 
+  let unparsedRows = []; 
 
-  const expandedModels = new Set(); // key: "y-m"（同月份合併成一個 key）
+  const expandedModels = new Set();
 
-  // 依「年-月」分組；同月份底下所有機種名稱合併顯示在同一行，
-  // 但仍保留各機種、各檔案的明細供展開使用
   function buildFlatGroups(rows){
-    const ymMap = new Map(); // "y-m" -> { year, month, modelMap: Map(model -> {files, total}), total }
+    const ymMap = new Map(); 
     rows.forEach(r => {
       const y = r.date.getFullYear();
       const m = r.date.getMonth() + 1;
@@ -130,7 +126,7 @@
       const isNewYm = key !== prevYm;
       prevYm = key;
 
-      // 同月份所有機種名稱合併成一行文字，例如 "H500(Verizon)、H700(AT&T)、H500(Bell)"
+    
       const modelNamesJoined = g.models.map(m => escapeHtml(m.model)).join('、');
 
       const detail = expanded ? `
@@ -177,8 +173,7 @@
     );
   }
 
-  // 搜尋框只允許英文、數字和 ( ) &，且 & 最多一個；空白輸入（清除搜尋）一律允許
-  // 回傳錯誤訊息；沒問題就回傳空字串
+  // 搜尋框只允許英文、數字和 ( ) &，且 & 最多一個；
   function searchError(q){
     if(q === '') return '';
     if(!/^[A-Za-z0-9()&]+$/.test(q)) return '搜尋只能輸入英文字母、數字和 ( ) &，不能包含其他符號或空白';
@@ -302,7 +297,7 @@
     const box = document.getElementById('searchBox');
     box.disabled = true;
     box.title = '搜尋功能目前已關閉';
-    box.placeholder = '目前搜尋功能關閉';   // ← 加這一行
+    box.placeholder = '目前搜尋功能關閉';  
   }
   let searchDebounceTimer = null;
   document.getElementById('searchBox').addEventListener('input', () => {
