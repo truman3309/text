@@ -1349,9 +1349,20 @@
     const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE));
     if(currentPage < totalPages){ currentPage++; renderCurrentPage(); }
   });
-
+  
+  // ================= 比對結果「在結果中搜尋」的開關 =================
+  // true  = 開啟搜尋功能
+  // false = 關閉搜尋功能（搜尋框仍然顯示在畫面上，但無法輸入，也不會篩選結果）
+  const RESULT_SEARCH_ENABLED = false;
+ 
+  if(!RESULT_SEARCH_ENABLED){
+    const box = document.getElementById('searchBox');
+    box.disabled = true;
+    box.title = '搜尋功能目前已關閉';
+  }
   let searchDebounceTimer = null;
   document.getElementById('searchBox').addEventListener('input', (e) => {
+    if(!RESULT_SEARCH_ENABLED) return;
     if(!resultsCtx) return;
     const q = e.target.value.trim().toLowerCase();
     clearTimeout(searchDebounceTimer);
