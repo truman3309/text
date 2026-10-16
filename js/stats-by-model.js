@@ -83,13 +83,13 @@
       errorMsg.textContent = '讀取失敗：' + err.message;
     }
   }
+const RESULT_SEARCH_ENABLED = false;
   if(!RESULT_SEARCH_ENABLED){
     const box = document.getElementById('searchBox');
     box.disabled = true;
     box.title = '搜尋功能目前已關閉';
     box.placeholder = '目前搜尋功能關閉';   // ← 加這一行
   }
-  const RESULT_SEARCH_ENABLED = false;
   let searchDebounceTimer = null;
   document.getElementById('searchBox').addEventListener('input', (e) => {
     if(!RESULT_SEARCH_ENABLED) return;
