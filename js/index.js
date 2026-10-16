@@ -1359,6 +1359,7 @@
     const box = document.getElementById('searchBox');
     box.disabled = true;
     box.title = '搜尋功能目前已關閉';
+    box.placeholder = '目前搜尋功能關閉';
   }
   let searchDebounceTimer = null;
   document.getElementById('searchBox').addEventListener('input', (e) => {
